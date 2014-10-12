@@ -1,4 +1,5 @@
 #include "util.h"
+#include <sstream>
 #include <cctype>
 #include <dlfcn.h>
 
@@ -224,13 +225,20 @@ void process (size_t idx)
 
 int main (int argc, char** argv)
 {
-	if (argc != 3) {
-		std::cerr << "This program takes two arguments." << std::endl
-		          << "Usage: " << argv[0] << " [VARIABLE DEFINITION FILE] [C-FORMATTED EXPRESSION]" << std::endl;
+	if (argc < 3) {
+		std::cerr << "This program takes two or more arguments." << std::endl
+		          << "Usage: " << argv[0] << " <VARIABLE DEFINITION FILE> <C-FORMATTED EXPRESSION> [VARIABLE DEFINITION...]" << std::endl;
 		exit (EXIT_FAILURE);
 	}
 
 	read_variables (argv[1]);
+
+	for (int i = 3; i < argc; ++i) {
+		std::string s (argv[i]);
+		std::istringstream ss (s);
+		ss.exceptions (std::istream::failbit | std::istream::badbit);
+		parse_variable (ss);
+	}
 
 	F = compile_and_load_expression (argv[2]);
 
