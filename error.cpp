@@ -240,8 +240,8 @@ int main (int argc, char** argv)
 	}
 
 	result_nominal = F();
-	result_min = result_nominal;
-	result_max = result_nominal;
+	result_min = +INFINITY;
+	result_max = -INFINITY;
 
 	process (0);
 
