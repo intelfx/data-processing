@@ -38,8 +38,8 @@ std::vector<T> read_into_vector (std::istream& in)
 	std::vector<T> ret;
 	try {
 		std::copy (std::istream_iterator<T> (in),
-				   std::istream_iterator<T>(),
-				   std::back_inserter (ret));
+		           std::istream_iterator<T>(),
+		           std::back_inserter (ret));
 	} catch (std::ios_base::failure& e) {
 		if (!in.eof()) throw;
 	}
