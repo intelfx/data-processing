@@ -56,7 +56,19 @@ Func F;
 } // anonymous namespace
 
 /*
- * Reads a file and populates the variable definition list.
+ * Adds a single variable definition.
+ */
+
+void parse_variable (std::istream& stream)
+{
+	Variable v;
+	v.mode = Variable::NONE;
+	stream >> v.name >> v.value >> v.error;
+	variables.push_back (std::move (v));
+}
+
+/*
+ * Bopulates the variable definition list by reading a file.
  */
 
 void read_variables (const char* path)
@@ -64,11 +76,8 @@ void read_variables (const char* path)
 	std::ifstream variable_file;
 	open (variable_file, path);
 
-	while (!variable_file.eof()) {
-		Variable v;
-		v.mode = Variable::NONE;
-		variable_file >> v.name >> v.value >> v.error >> std::ws;
-		variables.push_back (std::move (v));
+	while (!(variable_file >> std::ws, variable_file.eof())) {
+		parse_variable (variable_file);
 	}
 }
 
