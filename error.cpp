@@ -253,11 +253,22 @@ int main (int argc, char** argv)
 
 	process (0);
 
-	std::cout << "F    = " << result_nominal << std::endl
-	          << "Fmin = " << result_min << std::endl
-	          << "Fmax = " << result_max << std::endl
-	          << "ΔF-  = " << result_nominal - result_min << std::endl
-	          << "ΔF+  = " << result_max - result_nominal << std::endl;
+	std::cout << "Parameters:" << std::endl;
+
+	std::cout << " F(...) = " << argv[2] << std::endl;
+
+	for (const Variable& v: variables) {
+		std::cout << " " << v.name << " = " << v.value << " ± " << v.error << std::endl;
+	}
+
+	std::cout << std::endl
+	          << "Results:" << std::endl
+	          << " F    = " << result_nominal << std::endl
+	          << " Fmin = " << result_min << std::endl
+	          << " Fmax = " << result_max << std::endl
+	          << " ΔF-  = " << result_nominal - result_min << std::endl
+	          << " ΔF+  = " << result_max - result_nominal << std::endl
+	          << std::endl;
 }
 
 /*
