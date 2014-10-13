@@ -135,6 +135,8 @@ Func compile_and_load_expression (const char* expression)
 	         << "typedef long double data_t;\n"
 	         << "\n"
 	         << "extern data_t get_variable (size_t idx);\n"
+	         << "\n"
+	         << "template <typename T> T sq (T arg) { return arg * arg; }\n"
 	         << "\n";
 
 	/*
