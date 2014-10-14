@@ -1,7 +1,14 @@
 #include <iostream>
 #include <algorithm>
+#include <map>
 #include <cmath>
 #include <cstdlib>
+
+namespace {
+
+static const int MAX_RESULTS = 5;
+
+} // anonymous namespace
 
 double parse_double (const char* ptr)
 {
@@ -14,14 +21,10 @@ double parse_double (const char* ptr)
 	return ret;
 }
 
-bool update_error (double* error, double new_error) {
-	if (new_error <= *error + 1e-3) {
-		*error = new_error;
-		return true;
-	} else {
-		return false;
-	}
-}
+struct Result
+{
+	double x, y, yR;	
+};
 
 int main (int argc, char** argv)
 {
@@ -36,44 +39,32 @@ int main (int argc, char** argv)
 	       xstep = parse_double (argv[3]),
 	       ystep = parse_double (argv[4]),
 	       xlimit = parse_double (argv[5]),
-	       ylimit = parse_double (argv[6]),
-		   result_x = 0,
-		   result_y,
-		   result_yR,
-		   error;
+	       ylimit = parse_double (argv[6]);
+
+	std::map<double, Result> results;
 
 	auto f = [a, b] (double x) { return a * x + b; };
 
-	for (;;) {
-		error = +INFINITY;
+	for (double x = xstep, y = f (x); x <= xlimit && y <= ylimit; x += xstep, y = f (x)) {
+		double floored = ystep * floor (y / ystep),
+		       ceiled = ystep * ceil (y / ystep);
 
-		for (double x = result_x + xstep, y = f (x); x <= xlimit && y <= ylimit; x += xstep, y = f (x)) {
-			double floored = ystep * floor (y / ystep),
-				   ceiled = ystep * ceil (y / ystep);
-
-			if (update_error (&error, fabs (y - floored))) {
-#ifdef DEBUG
-				std::cerr << "DBG: choice updated: x = " << x << " y = " << y << " (floored to " << floored << ") error = " << error << std::endl;
-#endif
-				result_x = x;
-				result_y = y;
-				result_yR = floored;
+		if (y - floored < ceiled - y) {
+			if (y - floored < ystep) {
+				results.emplace (y - floored, Result { x, y, floored });
 			}
-
-			if (update_error (&error, fabs (y - ceiled))) {
-#ifdef DEBUG
-				std::cerr << "DBG: choice updated: x = " << x << " y = " << y << " (ceiled to " << ceiled << ") error = " << error << std::endl;
-#endif
-				result_x = x;
-				result_y = y;
-				result_yR = ceiled;
-			}
-		}
-
-		if (error < ystep) {
-			std::cout << "x = " << result_x << " y = " << result_yR << " (" << result_y << ") error = " << error << std::endl;
 		} else {
-			break;
+			if (ceiled - y < ystep) {
+				results.emplace (ceiled - y, Result { x, y, ceiled });
+			}
 		}
+
+		if (results.size() > MAX_RESULTS) {
+			results.erase (--results.end());
+		}
+	}
+
+	for (auto it = results.begin(); it != results.end(); ++it) {
+		std::cout << "x = " << it->second.x << " y = " << it->second.yR << " (" << it->second.y << ") error = " << it->first << std::endl;
 	}
 }
