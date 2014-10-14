@@ -40,11 +40,11 @@ int main (int argc, char** argv)
 		std::cout << "Y = k * X" << std::endl
 		          << "k = " << a << " ± " << a_err << std::endl;
 	} else if (!strcmp (argv[3], "ab")) {
-		b = (xy_avg - sq (x_avg)) / (x_sq_avg - sq (x_avg));
-		a = y_avg - b * x_avg;
+		a = (xy_avg - x_avg * y_avg) / (x_sq_avg - sq (x_avg));
+		b = y_avg - a * x_avg;
 
-		b_err = sqrt (((y_sq_avg - sq (y_avg)) / (x_sq_avg - sq (x_avg)) - sq (b)) / x_data.size());
-		a_err = b_err * sqrt (x_sq_avg - sq (x_avg));
+		a_err = sqrt (((y_sq_avg - sq (y_avg)) / (x_sq_avg - sq (x_avg)) - sq (a)) / x_data.size());
+		b_err = a_err * sqrt (x_sq_avg - sq (x_avg));
 
 		std::cout << "Y = a * X + b" << std::endl
 		          << "a = " << a << " ± " << a_err << std::endl
