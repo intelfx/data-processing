@@ -1,9 +1,19 @@
 #include "util.h"
+#include <sstream>
 
 static const size_t MAX_SIGMA = 2;
 
-int main()
+int main (int argc, char** argv)
 {
+	double systematic_error = 0;
+
+	if (argc > 1) {
+		std::string s (argv[1]);
+		std::istringstream ss (s);
+		ss.exceptions (std::istream::badbit | std::istream::failbit);
+		ss >> systematic_error;
+	}
+
 	std::cin.exceptions (std::istream::badbit | std::istream::failbit);
 
 	auto data = read_into_vector<double> (std::cin);
@@ -17,6 +27,11 @@ int main()
 	std::cout << "average: " << average << std::endl;
 	std::cout << "standard deviation of the sample: " << stddev << std::endl;
 	std::cout << "standard error of the average: " << stderror << std::endl;
+
+	if (systematic_error) {
+		std::cout << "systematic error: " << systematic_error << std::endl;
+		std::cout << "total error of the average: " << sqrt (sq (stderror) + sq (systematic_error)) << std::endl;
+	}
 
 	size_t measurements_in_range[MAX_SIGMA] = { };
 
