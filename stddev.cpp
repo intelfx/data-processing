@@ -11,7 +11,7 @@ int main()
 	double squared_difference_sum = std::accumulate (data.begin(), data.end(), (double) 0,
 	                                                 [average] (double acc, double value) { return acc + (value - average) * (value - average); });
 
-	double stddev = sqrt (squared_difference_sum / data.size());
+	double stddev = sqrt (squared_difference_sum / (data.size() - 1));
 	double stderror = sqrt (squared_difference_sum) / data.size();
 
 	std::cout << "average: " << average << std::endl;
