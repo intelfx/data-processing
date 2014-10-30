@@ -1,4 +1,5 @@
 #include "util.h"
+#include "expr.h"
 #include <sstream>
 #include <cctype>
 #include <dlfcn.h>
@@ -7,7 +8,6 @@
  * Ancillary data types
  */
 
-typedef long double data_t;
 typedef data_t(*Func)();
 
 /*
@@ -16,28 +16,9 @@ typedef data_t(*Func)();
 
 namespace {
 
-const data_t eps = 1e-9;
 const char* compiler = "${CXX:-clang++} ${CXXFLAGS:--O3 -Wall -Wextra -Werror} -shared -fPIC";
 
 } // anonymous namespace
-
-/*
- * Defines a single variable with name, value and error.
- */
-
-struct Variable
-{
-	std::string name;
-	data_t value, error;
-	enum Mode
-	{
-		NONE = 0,
-		MINUS_ERROR,
-		PLUS_ERROR
-	} mode;
-
-	bool no_error() const { return fabsl (error) < eps; }
-};
 
 /*
  * Main data
