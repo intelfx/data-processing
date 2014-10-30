@@ -14,6 +14,8 @@ int main (int argc, char** argv)
 		ss >> systematic_error;
 	}
 
+	bool verbose = !getenv ("TERSE");
+
 	std::cin.exceptions (std::istream::badbit | std::istream::failbit);
 
 	auto data = read_into_vector<double> (std::cin);
@@ -25,7 +27,9 @@ int main (int argc, char** argv)
 	double stderror = sqrt (squared_difference_sum) / data.size();
 
 	std::cout << "average: " << average << std::endl;
-	std::cout << "standard deviation of the sample: " << stddev << std::endl;
+	if (verbose) {
+		std::cout << "standard deviation of the sample: " << stddev << std::endl;
+	}
 	std::cout << "standard error of the average: " << stderror << std::endl;
 
 	if (systematic_error) {
@@ -33,14 +37,16 @@ int main (int argc, char** argv)
 		std::cout << "total error of the average: " << sqrt (sq (stderror) + sq (systematic_error)) << std::endl;
 	}
 
-	size_t measurements_in_range[MAX_SIGMA] = { };
+	if (verbose) {
+		size_t measurements_in_range[MAX_SIGMA] = { };
 
-	for (size_t sigma = 1; sigma <= MAX_SIGMA; ++sigma) {
-		measurements_in_range[sigma - 1] = std::count_if (data.begin(), data.end(), [average, stddev, sigma] (double value) { return fabs (value - average) <= stddev * sigma; });
-	}
+		for (size_t sigma = 1; sigma <= MAX_SIGMA; ++sigma) {
+			measurements_in_range[sigma - 1] = std::count_if (data.begin(), data.end(), [average, stddev, sigma] (double value) { return fabs (value - average) <= stddev * sigma; });
+		}
 
-	for (size_t sigma = 1; sigma <= MAX_SIGMA; ++sigma) {
-		size_t count = measurements_in_range[sigma - 1];
-		std::cout << "error = " << sigma << " sigma (" << stddev * sigma << "): " << count << " measurements (" << (double) 100 * count / data.size() << "%)" << std::endl;
+		for (size_t sigma = 1; sigma <= MAX_SIGMA; ++sigma) {
+			size_t count = measurements_in_range[sigma - 1];
+			std::cout << "error = " << sigma << " sigma (" << stddev * sigma << "): " << count << " measurements (" << (double) 100 * count / data.size() << "%)" << std::endl;
+		}
 	}
 }
