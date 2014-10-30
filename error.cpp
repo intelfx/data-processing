@@ -38,18 +38,6 @@ Func F;
 } // anonymous namespace
 
 /*
- * Adds a single variable definition.
- */
-
-void parse_variable (std::istream& stream)
-{
-	Variable v;
-	v.mode = Variable::NONE;
-	stream >> v.name >> v.value >> v.error;
-	variables.push_back (std::move (v));
-}
-
-/*
  * Bopulates the variable definition list by reading a file.
  */
 
@@ -59,7 +47,7 @@ void read_variables (const char* path)
 	open (variable_file, path);
 
 	while (!(variable_file >> std::ws, variable_file.eof())) {
-		parse_variable (variable_file);
+		parse_variable (variables, variable_file);
 	}
 }
 
@@ -220,7 +208,7 @@ int main (int argc, char** argv)
 		std::string s (argv[i]);
 		std::istringstream ss (s);
 		ss.exceptions (std::istream::failbit | std::istream::badbit);
-		parse_variable (ss);
+		parse_variable (variables, ss);
 	}
 
 	F = compile_and_load_expression (argv[2]);

@@ -35,3 +35,15 @@ struct Variable
 
 	bool no_error() const { return fabsl (error) < eps; }
 };
+
+/*
+ * Adds a single variable definition.
+ */
+
+void parse_variable (std::vector<Variable>& vec, std::istream& stream)
+{
+	Variable v;
+	v.mode = Variable::NONE;
+	stream >> v.name >> v.value >> v.error;
+	vec.push_back (std::move (v));
+}
