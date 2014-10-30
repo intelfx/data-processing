@@ -40,7 +40,7 @@ struct Variable
  * Adds a single variable definition.
  */
 
-void parse_variable (std::vector<Variable>& vec, std::istream& stream)
+inline void parse_variable (std::vector<Variable>& vec, std::istream& stream)
 {
 	Variable v;
 	v.mode = Variable::NONE;
