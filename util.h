@@ -1,7 +1,10 @@
+#pragma once
+
 #include <iostream>
 #include <fstream>
 #include <iterator>
 #include <utility>
+
 #include <algorithm>
 #include <numeric>
 #include <vector>
@@ -12,7 +15,7 @@
  * Opens a file for reading and configures ifstream's exceptions.
  */
 
-void open (std::ifstream& stream, const char* name)
+inline void open (std::ifstream& stream, const char* name)
 {
 	stream.exceptions (std::ifstream::badbit | std::ifstream::failbit);
 	stream.open (name);
@@ -22,7 +25,7 @@ void open (std::ifstream& stream, const char* name)
  * Opens a file for writing and configures ofstream's exceptions.
  */
 
-void open (std::ofstream& stream, const char* name)
+inline void open (std::ofstream& stream, const char* name)
 {
 	stream.exceptions (std::ofstream::badbit | std::ofstream::failbit);
 	stream.open (name);
@@ -33,7 +36,7 @@ void open (std::ofstream& stream, const char* name)
  */
 
 template <typename T>
-std::vector<T> read_into_vector (std::istream& in)
+inline std::vector<T> read_into_vector (std::istream& in)
 {
 	std::vector<T> ret;
 	try {
@@ -50,7 +53,7 @@ std::vector<T> read_into_vector (std::istream& in)
  * Numeric: returns average value of the vector.
  */
 template <typename T>
-double avg (const std::vector<T>& vec)
+inline double avg (const std::vector<T>& vec)
 {
 	return (double) std::accumulate (vec.begin(), vec.end(), (T) 0) / vec.size();
 }
@@ -61,7 +64,7 @@ double avg (const std::vector<T>& vec)
  */
 
 template <typename T>
-double avg_product (const std::vector<T>& vec1, const std::vector<T>& vec2)
+inline double avg_product (const std::vector<T>& vec1, const std::vector<T>& vec2)
 {
 	return (double) std::inner_product (vec1.begin(), vec1.end(), vec2.begin(), (T) 0) / vec1.size();
 }
@@ -71,7 +74,7 @@ double avg_product (const std::vector<T>& vec1, const std::vector<T>& vec2)
  */
 
 template <typename T>
-T sq (T val)
+inline T sq (T val)
 {
 	return val * val;
 }
