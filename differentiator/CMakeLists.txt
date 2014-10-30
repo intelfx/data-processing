@@ -1,0 +1,1 @@
+add_executable(differentiator main.cpp lexer.cpp)
