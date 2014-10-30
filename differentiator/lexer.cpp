@@ -47,6 +47,8 @@ void LexerIterator::next()
 {
 	Classification cl, next;
 
+	cache_.clear();
+
 	// seek to end of whitespace (or end of input)
 	while ((cl = classify (current_end_)) == Classification::Whitespace) {
 		++current_end_;
@@ -106,9 +108,13 @@ LexerIterator LexerIterator::operator++(int)
 	return l;
 }
 
-LexerIterator::string LexerIterator::operator*() const
+const LexerIterator::string& LexerIterator::operator*()
 {
-	return string (current_, current_end_);
+	if ((current_ != current_end_) && cache_.empty()) {
+		cache_ = string (current_, current_end_);
+	}
+
+	return cache_;
 }
 
 Lexer::Lexer (const string& s)
