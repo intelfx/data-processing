@@ -84,7 +84,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 		auto it = variables_.find (*current_);
 		if (it != variables_.end()) {
 			++current_;
-			return Node::Variable::Ptr (new Node::Variable (&it->second));
+			return Node::Variable::Ptr (new Node::Variable (it->first, it->second));
 		}
 	}
 

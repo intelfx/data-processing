@@ -52,14 +52,15 @@ class Variable : public Base
 public:
 	typedef std::unique_ptr<Variable> Ptr;
 
-    Variable (const ::Variable* var);
+    Variable (const std::string& name, const ::Variable& variable);
 
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
 
 private:
-	const ::Variable* var_;
+	const std::string& name_;
+	const ::Variable& variable_;
 };
 
 class Power : public Base

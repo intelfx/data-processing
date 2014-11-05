@@ -16,8 +16,9 @@ Value::Value (data_t value)
 {
 }
 
-Variable::Variable (const ::Variable* var)
-: var_ (var)
+Variable::Variable (const std::string& name, const ::Variable& variable)
+: name_ (name)
+, variable_ (variable)
 {
 }
 

@@ -15,10 +15,10 @@ void Value::Dump (std::ostream& str)
 
 void Variable::Dump (std::ostream& str)
 {
-	str << "[" << var_->value;
+	str << name_ << " [" << variable_.value;
 
-	if (!var_->no_error()) {
-		str << " ± " << var_->error;
+	if (!variable_.no_error()) {
+		str << " ± " << variable_.error;
 	}
 
 	str << "]";
