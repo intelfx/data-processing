@@ -80,6 +80,8 @@ Node::Base::Ptr Parser::get_sub_expr()
 		Node::Base::Ptr sub_expr = parse();
 		if (current_.check_and_advance (")")) {
 			return std::move (sub_expr);
+		} else {
+			throw std::runtime_error ("Parse error: mismatched parentheses");
 		}
 	} else {
 		try {
