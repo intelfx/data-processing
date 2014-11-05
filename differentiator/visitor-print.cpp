@@ -7,7 +7,7 @@ PrintVisitor::PrintVisitor (std::ostream& stream)
 
 boost::any PrintVisitor::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& child)
 {
-	bool need_parentheses = (child->priority() < parent.priority());
+	bool need_parentheses = (child->priority() <= parent.priority());
 
 	if (need_parentheses) {
 		stream_ << "(";
@@ -98,7 +98,7 @@ boost::any PrintVisitor::visit (Node::MultiplicationDivision& node)
 	auto child = node.children().begin();
 
 	if (*reciprocation++) {
-		stream_ << "/ ";
+		stream_ << "1 / ";
 	}
 	parenthesized_visit (node, *child++);
 
