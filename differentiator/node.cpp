@@ -22,6 +22,11 @@ Variable::Variable (const std::string& name, const ::Variable& variable)
 {
 }
 
+Function::Function (const std::string& name)
+: name_ (name)
+{
+}
+
 Power::Power (Base::Ptr&& base, Base::Ptr&& exponent)
 {
 	add_child (std::move (base));
@@ -42,6 +47,7 @@ void MultiplicationDivision::add_child (Base::Ptr&& node, bool reciprocated)
 
 IMPLEMENT_ACCEPTOR (Value);
 IMPLEMENT_ACCEPTOR (Variable);
+IMPLEMENT_ACCEPTOR (Function);
 IMPLEMENT_ACCEPTOR (Power);
 IMPLEMENT_ACCEPTOR (AdditionSubtraction);
 IMPLEMENT_ACCEPTOR (MultiplicationDivision);

@@ -107,6 +107,26 @@ Node::Base::Ptr Parser::get_sub_expr()
 	/* function or variable */
 	std::string name = *current_;
 
+	if (std::next (current_).check ("(")) {
+		std::advance (current_, 2);
+
+		Node::Function::Ptr node (new Node::Function (name));
+
+		if (current_.check_and_advance (")")) {
+			return std::move (node);
+		}
+
+		do {
+			node->add_child (parse());
+		} while (current_.check_and_advance (","));
+
+		if (current_.check_and_advance (")")) {
+			return std::move (node);
+		} else {
+			throw std::runtime_error ("Parse error: mismatched parentheses");
+		}
+	}
+
 	/* variable */
 	auto it = variables_.find (name);
 	if (it != variables_.end()) {

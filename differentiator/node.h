@@ -22,13 +22,13 @@ public:
 	Base() = default;
 	virtual ~Base();
 
+	void add_child (Ptr&& node);
+
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR = 0;
 
 protected:
-	void add_child (Ptr&& node);
-
 	std::vector<Ptr> children_;
 };
 
@@ -61,6 +61,21 @@ public:
 private:
 	const std::string& name_;
 	const ::Variable& variable_;
+};
+
+class Function : public Base
+{
+public:
+	typedef std::unique_ptr<Function> Ptr;
+
+	Function (const std::string& name);
+
+	virtual void Dump (std::ostream& str);
+
+	DECLARE_ACCEPTOR;
+
+private:
+	std::string name_;
 };
 
 class Power : public Base

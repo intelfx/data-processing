@@ -24,9 +24,21 @@ void Variable::Dump (std::ostream& str)
 	str << "]";
 }
 
+void Function::Dump (std::ostream& str)
+{
+	str << "( " << name_;
+
+	for (Base::Ptr& child: children_) {
+		str << " ";
+		child->Dump (str);
+	}
+
+	str << ")";
+}
+
 void Power::Dump (std::ostream& str)
 {
-	str << "(**";
+	str << "( **";
 
 	for (Base::Ptr& child: children_) {
 		str << " ";
