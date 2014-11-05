@@ -8,8 +8,8 @@
 
 class Visitor;
 
-#define DECLARE_ACCEPTOR virtual boost::any visit (Visitor& visitor)
-#define IMPLEMENT_ACCEPTOR(type) boost::any type::visit (Visitor& visitor) { return visitor.visit (*this); }
+#define DECLARE_ACCEPTOR virtual boost::any accept (Visitor& visitor)
+#define IMPLEMENT_ACCEPTOR(type) boost::any type::accept (Visitor& visitor) { return visitor.visit (*this); }
 
 namespace Node
 {
