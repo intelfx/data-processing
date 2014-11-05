@@ -1,6 +1,8 @@
 #include "util.h"
 #include "expr.h"
 #include "lexer.h"
+#include "parser.h"
+#include "visitor.h"
 
 #include <sstream>
 
@@ -71,4 +73,8 @@ int main (int argc, char** argv)
 	{
 		std::cout << " '" << lexem << "'" << std::endl;
 	}
+
+	Node::Base::Ptr tree = Parser (expression, variables).parse();
+	tree->Dump (std::cout);
+	std::cout << std::endl;
 }
