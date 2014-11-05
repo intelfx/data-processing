@@ -61,6 +61,7 @@ public:
     Variable (const std::string& name, const ::Variable& variable);
 
 	const std::string& name() const { return name_; }
+	data_t value() const { return variable_.value; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
