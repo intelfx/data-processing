@@ -117,6 +117,54 @@ const LexerIterator::string& LexerIterator::operator*()
 	return cache_;
 }
 
+const LexerIterator::string* LexerIterator::operator->()
+{
+	return &operator*();
+}
+
+LexerIterator::operator bool() const
+{
+	return !is_end();
+}
+
+bool LexerIterator::check (std::initializer_list<string> list, size_t* idx)
+{
+	size_t matched = 0;
+
+	for (const string& s: list) {
+		if (operator*() == s) {
+			if (idx) {
+				*idx = matched;
+			}
+			return true;
+		}
+
+		++matched;
+	}
+
+	return false;
+}
+
+bool LexerIterator::check_and_advance (std::initializer_list<string> list, size_t* idx)
+{
+	if (check (list, idx)) {
+		operator++();
+		return true;
+	}
+
+	return false;
+}
+
+bool LexerIterator::check_and_advance(const LexerIterator::string& s)
+{
+	if (operator*() == s) {
+		operator++();
+		return true;
+	}
+
+	return false;
+}
+
 Lexer::Lexer (const string& s)
 : s_ (s)
 {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <util.h>
+
+#include <initializer_list>
 #include <cctype>
 
 class LexerIterator
@@ -44,6 +46,13 @@ public:
 	LexerIterator& operator++();
 	LexerIterator operator++(int);
 	const string& operator*();
+	const string* operator->();
+	operator bool() const;
+
+	bool check (std::initializer_list<string> list, size_t* idx = nullptr);
+	bool check_and_advance (std::initializer_list<string> list, size_t* idx = nullptr);
+	bool check_and_advance (const string& s);
+
 };
 
 class Lexer
