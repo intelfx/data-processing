@@ -24,6 +24,7 @@ public:
 
 	void add_child (Ptr&& node);
 
+	virtual int priority() const = 0;
 	virtual void Dump (std::ostream& str) = 0;
 
 	DECLARE_ACCEPTOR = 0;
@@ -39,6 +40,7 @@ public:
 
 	Value (data_t value);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
@@ -54,6 +56,7 @@ public:
 
     Variable (const std::string& name, const ::Variable& variable);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
@@ -70,6 +73,7 @@ public:
 
 	Function (const std::string& name);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
@@ -85,6 +89,7 @@ public:
 
 	Power (Base::Ptr&& base, Base::Ptr&& exponent);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
@@ -97,6 +102,7 @@ public:
 
 	void add_child (Base::Ptr&& node, bool negated);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
@@ -112,6 +118,7 @@ public:
 
 	void add_child (Base::Ptr&& node, bool reciprocated);
 
+	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
