@@ -54,20 +54,18 @@ boost::any SimplifyVisitor::visit (Node::Power& node)
 	}
 }
 
-boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
+void SimplifyVisitor::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
 {
-	data_t result_value = 0;
-	Node::AdditionSubtraction::Ptr result;
-
 	auto child = node.children().begin();
 	auto negation = node.negation().begin();
 
 	while (child != node.children().end()) {
 		Node::Base::Ptr simplified (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
+		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
 
 		if (simplified_value) {
-			if (*negation++) {
+			if (*negation++ ^ node_negation) {
 				result_value -= simplified_value->value();
 			} else {
 				result_value += simplified_value->value();
@@ -76,9 +74,22 @@ boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
 			if (!result) {
 				result = Node::AdditionSubtraction::Ptr (new Node::AdditionSubtraction);
 			}
-			result->add_child (std::move (simplified), *negation++);
+
+			if (simplified_addsub) {
+				merge_node (result_value, result, *simplified_addsub, *negation++ ^ node_negation);
+			} else {
+				result->add_child (std::move (simplified), *negation++ ^ node_negation);
+			}
 		}
 	}
+}
+
+boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
+{
+	data_t result_value = 0;
+	Node::AdditionSubtraction::Ptr result;
+
+	merge_node (result_value, result, node, false);
 
 	if (result) {
 		if (!fp_cmp (result_value, 0)) {
@@ -90,20 +101,18 @@ boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
 	}
 }
 
-boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
+void SimplifyVisitor::merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
 {
-	data_t result_value = 1;
-	Node::MultiplicationDivision::Ptr result;
-
 	auto child = node.children().begin();
 	auto reciprocation = node.reciprocation().begin();
 
 	while (child != node.children().end()) {
 		Node::Base::Ptr simplified (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
+		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
 
 		if (simplified_value) {
-			if (*reciprocation++) {
+			if (*reciprocation++ ^ node_reciprocation) {
 				result_value /= simplified_value->value();
 			} else {
 				result_value *= simplified_value->value();
@@ -112,9 +121,22 @@ boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
 			if (!result) {
 				result = Node::MultiplicationDivision::Ptr (new Node::MultiplicationDivision);
 			}
-			result->add_child (std::move (simplified), *reciprocation++);
+
+			if (simplified_muldiv) {
+				merge_node (result_value, result, *simplified_muldiv, *reciprocation++ ^ node_reciprocation);
+			} else {
+				result->add_child (std::move (simplified), *reciprocation++ ^ node_reciprocation);
+			}
 		}
 	}
+}
+
+boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
+{
+	data_t result_value = 1;
+	Node::MultiplicationDivision::Ptr result;
+
+	merge_node (result_value, result, node, false);
 
 	if (result) {
 		if (!fp_cmp (fabsl (result_value), 1)) {

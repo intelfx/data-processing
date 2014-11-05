@@ -6,6 +6,9 @@ class SimplifyVisitor : public Visitor
 {
 	std::string variable_;
 
+	void merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation);
+	void merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
+
 public:
 	SimplifyVisitor (const std::string& variable);
 
