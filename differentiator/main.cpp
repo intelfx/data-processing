@@ -63,4 +63,12 @@ int main (int argc, char** argv)
 	          << "Results:" << std::endl
 	          << " F    = " << result_nominal << std::endl
 	          << std::endl;
+
+	std::cout << "string: '" << expression << "'" << std::endl;
+	std::cout << "lexems:" << std::endl;
+
+	for (std::string lexem: Lexer (expression))
+	{
+		std::cout << " '" << lexem << "'" << std::endl;
+	}
 }
