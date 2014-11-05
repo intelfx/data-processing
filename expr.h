@@ -19,10 +19,22 @@ const data_t eps = 1e-9;
 } // anonymous namespace
 
 /*
- * Defines a single variable with name, value and error.
+ * Defines a single variable with a value and an error.
  */
 
 struct Variable
+{
+	data_t value, error;
+
+	bool no_error() const { return fabsl (error) < eps; }
+};
+typedef std::map<std::string, Variable> VariableMap;
+
+/*
+ * Defines a single variable with name, value and error.
+ */
+
+struct NamedVariable
 {
 	std::string name;
 	data_t value, error;
@@ -35,15 +47,28 @@ struct Variable
 
 	bool no_error() const { return fabsl (error) < eps; }
 };
+typedef std::vector<NamedVariable> VariableVec;
+
+/*
+ * Adds a single named variable definition.
+ */
+
+inline void parse_variable (VariableVec& vec, std::istream& stream)
+{
+	NamedVariable v;
+	v.mode = NamedVariable::NONE;
+	stream >> v.name >> v.value >> v.error;
+	vec.push_back (std::move (v));
+}
 
 /*
  * Adds a single variable definition.
  */
 
-inline void parse_variable (std::vector<Variable>& vec, std::istream& stream)
+inline void parse_variable (VariableMap& map, std::istream& stream)
 {
+	std::string name;
 	Variable v;
-	v.mode = Variable::NONE;
-	stream >> v.name >> v.value >> v.error;
-	vec.push_back (std::move (v));
+	stream >> name >> v.value >> v.error;
+	map.insert (std::make_pair (std::move (name), std::move (v)));
 }

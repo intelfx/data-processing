@@ -27,7 +27,7 @@ const char* compiler = "${CXX:-clang++} ${CXXFLAGS:--O3 -Wall -Wextra -Werror} -
 namespace {
 
 // all variables being considered
-std::vector<Variable> variables;
+VariableVec variables;
 
 // expression evaluation results 
 data_t result_nominal, result_min, result_max;
@@ -183,12 +183,12 @@ void process (size_t idx)
 	} else {
 		// perform substitutions for current variable and continue recursion
 		if (variables[idx].no_error()) {
-			variables[idx].mode = Variable::NONE;
+			variables[idx].mode = NamedVariable::NONE;
 			process (idx + 1);
 		} else {
-			variables[idx].mode = Variable::MINUS_ERROR;
+			variables[idx].mode = NamedVariable::MINUS_ERROR;
 			process (idx + 1);
-			variables[idx].mode = Variable::PLUS_ERROR;
+			variables[idx].mode = NamedVariable::PLUS_ERROR;
 			process (idx + 1);
 		}
 	}
@@ -228,7 +228,7 @@ int main (int argc, char** argv)
 
 	std::cout << " F(...) = " << argv[2] << std::endl;
 
-	for (const Variable& v: variables) {
+	for (const NamedVariable& v: variables) {
 		std::cout << " " << v.name << " = " << v.value << " ± " << v.error << std::endl;
 	}
 
@@ -249,11 +249,11 @@ int main (int argc, char** argv)
 
 data_t get_variable (size_t idx)
 {
-	Variable& v = variables.at (idx);
+	NamedVariable& v = variables.at (idx);
 	switch (v.mode) {
-	case Variable::NONE:        return v.value;
-	case Variable::MINUS_ERROR: return v.value - v.error;
-	case Variable::PLUS_ERROR:  return v.value + v.error;
+	case NamedVariable::NONE:        return v.value;
+	case NamedVariable::MINUS_ERROR: return v.value - v.error;
+	case NamedVariable::PLUS_ERROR:  return v.value + v.error;
 	default: std::cerr << "Incorrect variable mode" << std::endl; abort();
 	}
 }

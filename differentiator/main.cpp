@@ -11,7 +11,7 @@
 namespace {
 
 // all variables being considered
-std::vector<Variable> variables;
+VariableMap variables;
 
 // expression evaluation results
 data_t result_nominal;
@@ -55,8 +55,8 @@ int main (int argc, char** argv)
 
 	std::cout << " F(...) = " << argv[2] << std::endl;
 
-	for (const Variable& v: variables) {
-		std::cout << " " << v.name << " = " << v.value << " ± " << v.error << std::endl;
+	for (auto it = variables.begin(); it != variables.end(); ++it) {
+		std::cout << " " << it->first << " = " << it->second.value << " ± " << it->second.error << std::endl;
 	}
 
 	std::cout << std::endl
