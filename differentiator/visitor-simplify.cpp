@@ -138,7 +138,7 @@ boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
 
 	merge_node (result_value, result, node, false);
 
-	if (result) {
+	if (result && !fp_cmp (result_value, 0)) {
 		if (!fp_cmp (fabsl (result_value), 1)) {
 			if (fabsl (result_value) < 1) {
 				result->add_child (Node::Base::Ptr (new Node::Value (1 / result_value)), true);
