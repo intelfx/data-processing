@@ -55,10 +55,21 @@ Node::Base::Ptr Parser::get_add_sub()
 
 Node::Base::Ptr Parser::get_mul_div()
 {
-	return get_arithm<Node::MultiplicationDivision> (&Parser::get_sub_expr,
+	return get_arithm<Node::MultiplicationDivision> (&Parser::get_power,
 	                                                 { "*", "/" },
 	                                                 [] (Node::MultiplicationDivision::Ptr& node, Node::Base::Ptr&& child, size_t idx)
 	                                                    { node->add_child (std::move (child), (idx == 1)); });
+}
+
+Node::Base::Ptr Parser::get_power()
+{
+	Node::Base::Ptr base = get_sub_expr();
+
+	if (current_.check_and_advance ({ "^", "**" })) {
+		return Node::Power::Ptr (new Node::Power (std::move (base), get_sub_expr()));
+	} else {
+		return std::move (base);
+	}
 }
 
 Node::Base::Ptr Parser::get_sub_expr()

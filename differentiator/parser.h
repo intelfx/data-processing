@@ -16,6 +16,7 @@ class Parser
 
 	Node::Base::Ptr get_add_sub();
 	Node::Base::Ptr get_mul_div();
+	Node::Base::Ptr get_power();
 	Node::Base::Ptr get_sub_expr();
 
 public:
