@@ -5,6 +5,7 @@
 #include "visitor.h"
 #include "visitor-print.h"
 #include "visitor-calculate.h"
+#include "visitor-simplify.h"
 
 #include <sstream>
 
@@ -86,8 +87,17 @@ int main (int argc, char** argv)
 	tree->Dump (std::cout);
 	std::cout << std::endl;
 
+	SimplifyVisitor simplifier ("x");
+	Node::Base::Ptr simplified (boost::any_cast<Node::Base*> (tree->accept (simplifier)));
+	std::cout << "simpl: ";
+	simplified->Dump (std::cout);
+	std::cout << std::endl;
+
 	PrintVisitor printer (std::cout);
 	tree->accept (printer);
+	std::cout << std::endl;
+
+	simplified->accept (printer);
 	std::cout << std::endl;
 
 	CalculateVisitor calculator;
