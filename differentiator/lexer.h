@@ -50,6 +50,7 @@ public:
 	operator bool() const;
 
 	bool check (std::initializer_list<string> list, size_t* idx = nullptr);
+	bool check (const string& s);
 	bool check_and_advance (std::initializer_list<string> list, size_t* idx = nullptr);
 	bool check_and_advance (const string& s);
 

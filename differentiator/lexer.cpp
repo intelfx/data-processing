@@ -145,6 +145,11 @@ bool LexerIterator::check (std::initializer_list<string> list, size_t* idx)
 	return false;
 }
 
+bool LexerIterator::check (const LexerIterator::string& s)
+{
+	return (operator*() == s);
+}
+
 bool LexerIterator::check_and_advance (std::initializer_list<string> list, size_t* idx)
 {
 	if (check (list, idx)) {
@@ -155,9 +160,9 @@ bool LexerIterator::check_and_advance (std::initializer_list<string> list, size_
 	return false;
 }
 
-bool LexerIterator::check_and_advance(const LexerIterator::string& s)
+bool LexerIterator::check_and_advance (const LexerIterator::string& s)
 {
-	if (operator*() == s) {
+	if (check (s)) {
 		operator++();
 		return true;
 	}
