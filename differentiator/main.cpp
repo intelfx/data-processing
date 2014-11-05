@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "visitor.h"
 #include "visitor-print.h"
+#include "visitor-calculate.h"
 
 #include <sstream>
 
@@ -62,11 +63,6 @@ int main (int argc, char** argv)
 		std::cout << " " << it->first << " = " << it->second.value << " ± " << it->second.error << std::endl;
 	}
 
-	std::cout << std::endl
-	          << "Results:" << std::endl
-	          << " F    = " << result_nominal << std::endl
-	          << std::endl;
-
 	std::cout << "string: '" << expression << "'" << std::endl;
 	std::cout << "lexems:" << std::endl;
 
@@ -82,4 +78,12 @@ int main (int argc, char** argv)
 	PrintVisitor printer (std::cout);
 	tree->accept (printer);
 	std::cout << std::endl;
+
+	CalculateVisitor calculator;
+	result_nominal = boost::any_cast<data_t> (tree->accept (calculator));
+
+	std::cout << std::endl
+	          << "Results:" << std::endl
+	          << " F    = " << result_nominal << std::endl
+	          << std::endl;
 }
