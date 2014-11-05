@@ -3,11 +3,6 @@
 namespace Node
 {
 
-void Base::Dump (std::ostream& str)
-{
-	str << "( ERR )";
-}
-
 void Value::Dump (std::ostream& str)
 {
 	str << value_;

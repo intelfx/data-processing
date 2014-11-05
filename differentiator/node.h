@@ -24,7 +24,7 @@ public:
 
 	void add_child (Ptr&& node);
 
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) = 0;
 
 	DECLARE_ACCEPTOR = 0;
 
