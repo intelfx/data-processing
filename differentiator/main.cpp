@@ -3,6 +3,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "visitor.h"
+#include "visitor-print.h"
 
 #include <sstream>
 
@@ -76,5 +77,9 @@ int main (int argc, char** argv)
 
 	Node::Base::Ptr tree = Parser (expression, variables).parse();
 	tree->Dump (std::cout);
+	std::cout << std::endl;
+
+	PrintVisitor printer (std::cout);
+	tree->accept (printer);
 	std::cout << std::endl;
 }
