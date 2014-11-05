@@ -7,6 +7,7 @@
 #include "visitor-calculate.h"
 #include "visitor-simplify.h"
 #include "visitor-optimize.h"
+#include "visitor-differentiate.h"
 
 #include <sstream>
 
@@ -100,6 +101,17 @@ int main (int argc, char** argv)
 	optimized->Dump (std::cout);
 	std::cout << std::endl;
 
+	DifferentiateVisitor differentiator ("x");
+	Node::Base::Ptr differential (boost::any_cast<Node::Base*> (optimized->accept (differentiator)));
+	std::cout << "diff: ";
+	differential->Dump (std::cout);
+	std::cout << std::endl;
+
+	Node::Base::Ptr diff_simpl (boost::any_cast<Node::Base*> (differential->accept (simplifier)));
+	std::cout << "d.simpl: ";
+	diff_simpl->Dump (std::cout);
+	std::cout << std::endl;
+
 	PrintVisitor printer (std::cout);
 	std::cout << "tree: ";
 	tree->accept (printer);
@@ -111,6 +123,14 @@ int main (int argc, char** argv)
 
 	std::cout << "opt: ";
 	optimized->accept (printer);
+	std::cout << std::endl;
+
+	std::cout << "diff: ";
+	differential->accept (printer);
+	std::cout << std::endl;
+
+	std::cout << "d.simpl: ";
+	diff_simpl->accept (printer);
 	std::cout << std::endl;
 
 	CalculateVisitor calculator;
