@@ -1,5 +1,7 @@
 #include "parser.h"
 
+#include <sstream>
+
 Parser::Parser (const Lexer::string& s, const VariableMap& v)
 : current_ (LexerIterator (s))
 , variables_ (v)
@@ -16,24 +18,24 @@ Node::Base::Ptr Parser::get_arithm (Node::Base::Ptr(Parser::*next)(),
                                     std::initializer_list<LexerIterator::string> tokens,
                                     ChildInserter inserter)
 {
-	Node::Base::Ptr child = (this->*next)();
+	Node::Base::Ptr child;
 	typename T::Ptr node;
 	size_t idx;
+
+	if (current_.check_and_advance (tokens, &idx)) {
+		node = typename T::Ptr (new T);
+		inserter (node, (this->*next)(), idx);
+	} else {
+		child = (this->*next)();
+	}
 
 	while (current_.check_and_advance (tokens, &idx)) {
 		if (!node) {
 			node = typename T::Ptr (new T);
-			if (child) {
-				inserter (node, std::move (child), 0);
-			}
+			inserter (node, std::move (child), 0);
 		}
 
-		child = (this->*next)();
-		if (child) {
-			inserter (node, std::move (child), idx);
-		} else {
-			return nullptr;
-		}
+		inserter (node, (this->*next)(), idx);
 	}
 
 	if (child) {
@@ -62,7 +64,7 @@ Node::Base::Ptr Parser::get_mul_div()
 Node::Base::Ptr Parser::get_sub_expr()
 {
 	if (!current_) {
-		return nullptr;
+		throw std::runtime_error ("Parse error: unexpected end of expression");
 	} else if (current_.check_and_advance ("(")) {
 		Node::Base::Ptr sub_expr = parse();
 		if (current_.check_and_advance (")")) {
@@ -73,7 +75,9 @@ Node::Base::Ptr Parser::get_sub_expr()
 			size_t pos;
 			data_t value = std::stold (*current_, &pos);
 			if (pos != current_->size()) {
-				return nullptr;
+				std::ostringstream reason;
+				reason << "Parse error: wrong numeric literal: '" << *current_ << "'";
+				throw std::runtime_error (reason.str());
 			}
 			++current_;
 			return Node::Value::Ptr (new Node::Value (value));
@@ -85,8 +89,10 @@ Node::Base::Ptr Parser::get_sub_expr()
 		if (it != variables_.end()) {
 			++current_;
 			return Node::Variable::Ptr (new Node::Variable (it->first, it->second));
+		} else {
+			std::ostringstream reason;
+			reason << "Parse error: unknown variable: '" << *current_ << "'";
+			throw std::runtime_error (reason.str());
 		}
 	}
-
-	return nullptr;
 }
