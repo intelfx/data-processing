@@ -5,10 +5,10 @@
 #include <initializer_list>
 #include <cctype>
 
-class LexerIterator
+class LexerIterator : public std::iterator<std::forward_iterator_tag, std::string>
 {
 public:
-	typedef std::string string;
+	typedef value_type string;
 	typedef string::value_type character;
 	string::const_iterator begin_, current_, current_end_, end_;
 	string cache_;
