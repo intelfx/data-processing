@@ -72,3 +72,12 @@ inline void parse_variable (VariableMap& map, std::istream& stream)
 	stream >> name >> v.value >> v.error;
 	map.insert (std::make_pair (std::move (name), std::move (v)));
 }
+
+/*
+ * Compares two floating-point values.
+ */
+
+inline bool fp_cmp (data_t _1, data_t _2)
+{
+	return fabsl (_1 - _2) < eps;
+}
