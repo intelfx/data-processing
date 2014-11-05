@@ -24,6 +24,8 @@ public:
 
 	void add_child (Ptr&& node);
 
+	std::vector<Ptr>& children() { return children_; }
+
 	virtual int priority() const = 0;
 	virtual void Dump (std::ostream& str) = 0;
 
@@ -39,6 +41,8 @@ public:
 	typedef std::unique_ptr<Value> Ptr;
 
 	Value (data_t value);
+
+	data_t value() const { return value_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -56,6 +60,8 @@ public:
 
     Variable (const std::string& name, const ::Variable& variable);
 
+	const std::string& name() const { return name_; }
+
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
@@ -72,6 +78,8 @@ public:
 	typedef std::unique_ptr<Function> Ptr;
 
 	Function (const std::string& name);
+
+	const std::string& name() const { return name_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -102,6 +110,8 @@ public:
 
 	void add_child (Base::Ptr&& node, bool negated);
 
+	std::vector<bool>& negation() { return negation_; }
+
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
@@ -117,6 +127,8 @@ public:
 	typedef std::unique_ptr<MultiplicationDivision> Ptr;
 
 	void add_child (Base::Ptr&& node, bool reciprocated);
+
+	std::vector<bool>& reciprocation() { return reciprocation_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
