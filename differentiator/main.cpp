@@ -6,6 +6,7 @@
 #include "visitor-print.h"
 #include "visitor-calculate.h"
 #include "visitor-simplify.h"
+#include "visitor-optimize.h"
 
 #include <sstream>
 
@@ -78,12 +79,12 @@ int main (int argc, char** argv)
 	std::cout << std::endl;
 
 	Node::Base::Ptr tree2 = tree->clone();
-	std::cout << "tree2: ";
+	std::cout << "tree-cloned: ";
 	tree2->Dump (std::cout);
 	std::cout << std::endl;
 
 	tree = std::move (tree2);
-	std::cout << "again: ";
+	std::cout << "tree-moved: ";
 	tree->Dump (std::cout);
 	std::cout << std::endl;
 
@@ -93,15 +94,27 @@ int main (int argc, char** argv)
 	simplified->Dump (std::cout);
 	std::cout << std::endl;
 
+	OptimizeVisitor optimizer;
+	Node::Base::Ptr optimized (boost::any_cast<Node::Base*> (simplified->accept (optimizer)));
+	std::cout << "opt: ";
+	optimized->Dump (std::cout);
+	std::cout << std::endl;
+
 	PrintVisitor printer (std::cout);
+	std::cout << "tree: ";
 	tree->accept (printer);
 	std::cout << std::endl;
 
+	std::cout << "simpl: ";
 	simplified->accept (printer);
 	std::cout << std::endl;
 
+	std::cout << "opt: ";
+	optimized->accept (printer);
+	std::cout << std::endl;
+
 	CalculateVisitor calculator;
-	result_nominal = boost::any_cast<data_t> (tree->accept (calculator));
+	result_nominal = boost::any_cast<data_t> (optimized->accept (calculator));
 
 	std::cout << std::endl
 	          << "Results:" << std::endl
