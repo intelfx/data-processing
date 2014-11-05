@@ -66,7 +66,10 @@ Node::Base::Ptr Parser::get_power()
 	Node::Base::Ptr base = get_sub_expr();
 
 	if (current_.check_and_advance ({ "^", "**" })) {
-		return Node::Power::Ptr (new Node::Power (std::move (base), get_sub_expr()));
+		Node::Power::Ptr result (new Node::Power);
+		result->add_child (std::move (base));
+		result->add_child (get_sub_expr());
+		return std::move (result);
 	} else {
 		return std::move (base);
 	}

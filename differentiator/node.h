@@ -96,8 +96,6 @@ class Power : public Base
 public:
 	typedef std::unique_ptr<Power> Ptr;
 
-	Power (Base::Ptr&& base, Base::Ptr&& exponent);
-
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 

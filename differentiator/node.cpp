@@ -27,12 +27,6 @@ Function::Function (const std::string& name)
 {
 }
 
-Power::Power (Base::Ptr&& base, Base::Ptr&& exponent)
-{
-	add_child (std::move (base));
-	add_child (std::move (exponent));
-}
-
 void AdditionSubtraction::add_child (Base::Ptr&& node, bool negated)
 {
 	Base::add_child (std::move (node));
