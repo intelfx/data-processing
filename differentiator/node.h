@@ -24,6 +24,7 @@ public:
 
 	void add_child (Ptr&& node);
 
+	Ptr clone() const;
 	std::vector<Ptr>& children() { return children_; }
 
 	virtual int priority() const = 0;
@@ -32,6 +33,8 @@ public:
 	DECLARE_ACCEPTOR = 0;
 
 protected:
+	virtual Ptr clone_bare() const = 0;
+
 	std::vector<Ptr> children_;
 };
 
@@ -48,6 +51,9 @@ public:
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
+
+protected:
+    virtual Base::Ptr clone_bare() const;
 
 private:
 	data_t value_;
@@ -68,6 +74,9 @@ public:
 
 	DECLARE_ACCEPTOR;
 
+protected:
+    virtual Base::Ptr clone_bare() const;
+
 private:
 	const std::string& name_;
 	const ::Variable& variable_;
@@ -87,6 +96,9 @@ public:
 
 	DECLARE_ACCEPTOR;
 
+protected:
+    virtual Base::Ptr clone_bare() const;
+
 private:
 	std::string name_;
 };
@@ -100,6 +112,9 @@ public:
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
+
+protected:
+    virtual Base::Ptr clone_bare() const;
 };
 
 class AdditionSubtraction : public Base
@@ -115,6 +130,9 @@ public:
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
+
+protected:
+    virtual Base::Ptr clone_bare() const;
 
 private:
 	std::vector<bool> negation_;
@@ -133,6 +151,9 @@ public:
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
+
+protected:
+    virtual Base::Ptr clone_bare() const;
 
 private:
 	std::vector<bool> reciprocation_;

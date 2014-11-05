@@ -72,6 +72,17 @@ int main (int argc, char** argv)
 	}
 
 	Node::Base::Ptr tree = Parser (expression, variables).parse();
+	std::cout << "tree: ";
+	tree->Dump (std::cout);
+	std::cout << std::endl;
+
+	Node::Base::Ptr tree2 = tree->clone();
+	std::cout << "tree2: ";
+	tree2->Dump (std::cout);
+	std::cout << std::endl;
+
+	tree = std::move (tree2);
+	std::cout << "again: ";
 	tree->Dump (std::cout);
 	std::cout << std::endl;
 
