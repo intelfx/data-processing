@@ -74,38 +74,47 @@ Node::Base::Ptr Parser::get_power()
 
 Node::Base::Ptr Parser::get_sub_expr()
 {
+	/* end of expression */
 	if (!current_) {
 		throw std::runtime_error ("Parse error: unexpected end of expression");
-	} else if (current_.check_and_advance ("(")) {
+	}
+
+	/* sub-expression */
+	if (current_.check_and_advance ("(")) {
 		Node::Base::Ptr sub_expr = parse();
 		if (current_.check_and_advance (")")) {
 			return std::move (sub_expr);
 		} else {
 			throw std::runtime_error ("Parse error: mismatched parentheses");
 		}
-	} else {
-		try {
-			size_t pos;
-			data_t value = std::stold (*current_, &pos);
-			if (pos != current_->size()) {
-				std::ostringstream reason;
-				reason << "Parse error: wrong numeric literal: '" << *current_ << "'";
-				throw std::runtime_error (reason.str());
-			}
-			++current_;
-			return Node::Value::Ptr (new Node::Value (value));
-		} catch (std::invalid_argument& e) {
-			/* clearly not a value -- continue */
-		}
+	}
 
-		auto it = variables_.find (*current_);
-		if (it != variables_.end()) {
-			++current_;
-			return Node::Variable::Ptr (new Node::Variable (it->first, it->second));
-		} else {
+	/* numeric literal */
+	try {
+		size_t pos;
+		data_t value = std::stold (*current_, &pos);
+		if (pos != current_->size()) {
 			std::ostringstream reason;
-			reason << "Parse error: unknown variable: '" << *current_ << "'";
+			reason << "Parse error: wrong numeric literal: '" << *current_ << "'";
 			throw std::runtime_error (reason.str());
 		}
+		++current_;
+		return Node::Value::Ptr (new Node::Value (value));
+	} catch (std::invalid_argument& e) {
+		/* clearly not a value -- continue */
+	}
+
+	/* function or variable */
+	std::string name = *current_;
+
+	/* variable */
+	auto it = variables_.find (name);
+	if (it != variables_.end()) {
+		++current_;
+		return Node::Variable::Ptr (new Node::Variable (it->first, it->second));
+	} else {
+		std::ostringstream reason;
+		reason << "Parse error: unknown variable: '" << *current_ << "'";
+		throw std::runtime_error (reason.str());
 	}
 }
