@@ -57,15 +57,12 @@ boost::any Simplify::visit (Node::Power& node)
 	} else if (exponent_value && fp_cmp (exponent_value->value(), 1)) {
 		return static_cast<Node::Base*> (base.release());
 	} else if (base_muldiv) {
-		child = base_muldiv->children().begin();
-
-		while (child != base_muldiv->children().end()) {
+		for (Node::Base::Ptr& child: base_muldiv->children()) {
 			Node::Power::Ptr child_pwr (new Node::Power);
-			child_pwr->add_child (std::move (*child));
+			child_pwr->add_child (std::move (child));
 			child_pwr->add_child (exponent->clone());
-			(*child++) = std::move (child_pwr);
+			child = std::move (child_pwr);
 		}
-
 		return boost::any_cast<Node::Base*> (base->accept (*this));
 	} else if (base_power) {
 		child = base_power->children().begin();
