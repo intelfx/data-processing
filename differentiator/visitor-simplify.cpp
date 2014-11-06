@@ -5,7 +5,11 @@
 namespace Visitor {
 
 Simplify::Simplify (const std::string& variable)
-: variable_ (variable)
+: simplification_variable_ (variable)
+{
+}
+
+Simplify::Simplify()
 {
 }
 
@@ -16,7 +20,7 @@ boost::any Simplify::visit (Node::Value& node)
 
 boost::any Simplify::visit (Node::Variable& node)
 {
-	if (node.is_target_variable (variable_)) {
+	if (simplification_variable_.empty() || node.is_target_variable (simplification_variable_)) {
 		return static_cast<Node::Base*> (node.clone().release());
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (node.value()));

@@ -6,13 +6,14 @@ namespace Visitor {
 
 class Simplify : public Base
 {
-	std::string variable_;
+	std::string simplification_variable_;
 
 	void merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation);
 	void merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
 
 public:
 	Simplify (const std::string& variable);
+	Simplify();
 
 	virtual boost::any visit (Node::Value& node);
 	virtual boost::any visit (Node::Variable& node);
