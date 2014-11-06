@@ -41,6 +41,8 @@ boost::any Simplify::visit (Node::Power& node)
 
 	Node::Value *base_value = dynamic_cast<Node::Value*> (base.get()),
 	            *exponent_value = dynamic_cast<Node::Value*> (exponent.get());
+	Node::MultiplicationDivision* base_muldiv = dynamic_cast<Node::MultiplicationDivision*> (base.get());
+	Node::Power* base_power = dynamic_cast<Node::Power*> (base.get());
 
 	if (base_value && exponent_value) {
 		return static_cast<Node::Base*> (new Node::Value (powl (base_value->value(), exponent_value->value())));
@@ -52,6 +54,29 @@ boost::any Simplify::visit (Node::Power& node)
 		return static_cast<Node::Base*> (new Node::Value (1));
 	} else if (exponent_value && fp_cmp (exponent_value->value(), 1)) {
 		return static_cast<Node::Base*> (base.release());
+	} else if (base_muldiv) {
+		auto child = base_muldiv->children().begin();
+
+		while (child != base_muldiv->children().end()) {
+			Node::Power::Ptr child_pwr (new Node::Power);
+			child_pwr->add_child (std::move (*child));
+			child_pwr->add_child (exponent->clone());
+			(*child++) = std::move (child_pwr);
+		}
+
+		return static_cast<Node::Base*> (base.release());
+	} else if (base_power) {
+		Node::Base::Ptr base_base (std::move (base_power->children().at (0))),
+		                base_exponent (std::move (base_power->children().at (1)));
+
+		Node::MultiplicationDivision::Ptr result_exponent (new Node::MultiplicationDivision);
+		result_exponent->add_child (std::move (base_exponent), false);
+		result_exponent->add_child (std::move (exponent), false);
+
+		Node::Power::Ptr result (new Node::Power);
+		result->add_child (std::move (base_base));
+		result->add_child (std::move (result_exponent));
+		return static_cast<Node::Base*> (result.release());
 	} else {
 		Node::Power::Ptr result (new Node::Power);
 		result->add_child (std::move (base));
