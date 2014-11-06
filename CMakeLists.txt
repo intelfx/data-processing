@@ -4,7 +4,7 @@ project(errorcalculator)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${PROJECT_SOURCE_DIR})
 
-list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
+list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra")
 
 add_executable(error error.cpp)
 target_link_libraries(error ${CMAKE_DL_LIBS})

@@ -37,41 +37,44 @@ void read_variables (const char* path)
 	}
 }
 
-void testcase_visitors (Node::Base::Ptr tree, const std::string& partial_variable)
+Node::Base::Ptr simplify_tree (Node::Base::Ptr& tree)
 {
-	std::cerr << "VISITORS TESTCASE" << std::endl;
-	Node::Base::Ptr simplified = Visitor::Util::apply_transformation (tree, Visitor::Simplify (partial_variable));
-	Node::Base::Ptr optimized = Visitor::Util::apply_transformation (simplified, Visitor::Optimize());
-	Node::Base::Ptr differential = Visitor::Util::apply_transformation (optimized, Visitor::Differentiate (partial_variable));
-	Node::Base::Ptr diff_simplified = Visitor::Util::apply_transformation (differential, Visitor::Simplify (partial_variable));
-	Node::Base::Ptr diff_optimized = Visitor::Util::apply_transformation (diff_simplified, Visitor::Optimize());
+	Visitor::Optimize optimizer;
+	Visitor::Simplify simplifier;
 
-	Visitor::Print printer (std::cerr, false);
-
-	std::cerr << "initial:    "; tree->accept (printer); std::cerr << std::endl;
-	std::cerr << "simplified: "; simplified->accept (printer); std::cerr << std::endl;
-	std::cerr << "optimized:  "; optimized->accept (printer); std::cerr << std::endl;
-	std::cerr << "diff(" << partial_variable << "): "; differential->accept (printer); std::cerr << std::endl;
-	std::cerr << "diff.smpl.: "; diff_simplified->accept (printer); std::cerr << std::endl;
-	std::cerr << "diff.opt.:  "; diff_optimized->accept (printer); std::cerr << std::endl;
+	return tree->accept_ptr (simplifier)
+	           ->accept_ptr (optimizer);
 }
 
-void simplify_tree (Node::Base::Ptr& tree, const std::string& partial_variable)
+Visitor::Simplify maybe_partial_simplifier (const std::string& partial_variable)
 {
 	if (getenv ("SIMPLIFY")) {
-		tree = Visitor::Util::apply_transformation (tree, Visitor::Simplify (partial_variable));
+		return Visitor::Simplify (partial_variable);
 	} else {
-		tree = Visitor::Util::apply_transformation (tree, Visitor::Simplify());
+		return Visitor::Simplify();
 	}
-	tree = Visitor::Util::apply_transformation (tree, Visitor::Optimize());
 }
 
-Node::Base::Ptr differentiate (Node::Base::Ptr tree, const std::string& partial_variable)
+Node::Base::Ptr simplify_tree (Node::Base::Ptr& tree, const std::string& partial_variable)
 {
-	simplify_tree (tree, partial_variable);
-	tree = Visitor::Util::apply_transformation (tree, Visitor::Differentiate (partial_variable));
-	simplify_tree (tree, partial_variable);
-	return std::move (tree);
+	Visitor::Optimize optimizer;
+	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
+
+	return tree->accept_ptr (simplifier)
+	           ->accept_ptr (optimizer);
+}
+
+Node::Base::Ptr differentiate (Node::Base::Ptr& tree, const std::string& partial_variable)
+{
+	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
+	Visitor::Optimize optimizer;
+	Visitor::Differentiate differentiator (partial_variable);
+
+	return tree->accept_ptr (simplifier)
+	           ->accept_ptr (optimizer)
+	           ->accept_ptr (differentiator)
+	           ->accept_ptr (simplifier)
+	           ->accept_ptr (optimizer);
 }
 
 int main (int argc, char** argv)
@@ -110,7 +113,7 @@ int main (int argc, char** argv)
 
 	std::cout << "F = "; tree->accept (print_symbolic); std::cout << " =" << std::endl;
 	std::cout << "  = "; tree->accept (print_substitute); std::cout << " =" << std::endl;
-	std::cout << "  = " << boost::any_cast<data_t> (tree->accept (calculate)) << std::endl;
+	std::cout << "  = " << tree->accept_value (calculate) << std::endl;
 
 	std::cout << std::endl
 	          << "Partial derivatives:" << std::endl;
@@ -119,14 +122,13 @@ int main (int argc, char** argv)
 
 	for (auto it = variables.begin(); it != variables.end(); ++it) {
 		Node::Variable::Ptr error (new Node::Variable (it->first, it->second, true));
-		Node::Base::Ptr derivative = differentiate (tree->clone(), it->first);
+		Node::Base::Ptr derivative = differentiate (tree, it->first);
 
 		std::cout << "   " << error->pretty_name() << " = " << error->value() << std::endl;
 		std::cout << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
 
-
 		if (fp_cmp (error->value(), 0) ||
-		    fp_cmp (boost::any_cast<data_t> (derivative->accept (calculate)), 0)) {
+		    fp_cmp (derivative->accept_value (calculate), 0)) {
 			continue;
 		}
 
@@ -149,9 +151,12 @@ int main (int argc, char** argv)
 	full_error->add_child (std::move (full_squared_error));
 	full_error->add_child (Node::Base::Ptr (new Node::Value (0.5)));
 
+	Node::Base::Ptr error (std::move (full_error));
+	error = simplify_tree (error);
+
 	std::cout << std::endl
 	          << "Total error:" << std::endl;
-	std::cout << "ΔF = "; full_error->accept (print_symbolic); std::cout << " =" << std::endl;
-	std::cout << "   = "; full_error->accept (print_substitute); std::cout << " =" << std::endl;
-	std::cout << "   = " << boost::any_cast<data_t> (full_error->accept (calculate)) << std::endl;
+	std::cout << "ΔF = "; error->accept (print_symbolic); std::cout << " =" << std::endl;
+	std::cout << "   = "; error->accept (print_substitute); std::cout << " =" << std::endl;
+	std::cout << "   = " << error->accept_value (calculate) << std::endl;
 }
