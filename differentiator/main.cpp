@@ -89,19 +89,19 @@ int main (int argc, char** argv)
 	tree->Dump (std::cout);
 	std::cout << std::endl;
 
-	SimplifyVisitor simplifier ("x");
+	Visitor::Simplify simplifier ("x");
 	Node::Base::Ptr simplified (boost::any_cast<Node::Base*> (tree->accept (simplifier)));
 	std::cout << "simpl: ";
 	simplified->Dump (std::cout);
 	std::cout << std::endl;
 
-	OptimizeVisitor optimizer;
+	Visitor::Optimize optimizer;
 	Node::Base::Ptr optimized (boost::any_cast<Node::Base*> (simplified->accept (optimizer)));
 	std::cout << "opt: ";
 	optimized->Dump (std::cout);
 	std::cout << std::endl;
 
-	DifferentiateVisitor differentiator ("x");
+	Visitor::Differentiate differentiator ("x");
 	Node::Base::Ptr differential (boost::any_cast<Node::Base*> (optimized->accept (differentiator)));
 	std::cout << "diff: ";
 	differential->Dump (std::cout);
@@ -112,7 +112,7 @@ int main (int argc, char** argv)
 	diff_simpl->Dump (std::cout);
 	std::cout << std::endl;
 
-	PrintVisitor printer (std::cout);
+	Visitor::Print printer (std::cout);
 	std::cout << "tree: ";
 	tree->accept (printer);
 	std::cout << std::endl;
@@ -133,7 +133,7 @@ int main (int argc, char** argv)
 	diff_simpl->accept (printer);
 	std::cout << std::endl;
 
-	CalculateVisitor calculator;
+	Visitor::Calculate calculator;
 	result_nominal = boost::any_cast<data_t> (optimized->accept (calculator));
 
 	std::cout << std::endl

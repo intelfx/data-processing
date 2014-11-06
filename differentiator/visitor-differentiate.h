@@ -2,12 +2,14 @@
 
 #include "visitor.h"
 
-class DifferentiateVisitor : public Visitor
+namespace Visitor {
+
+class Differentiate : public Base
 {
 	std::string variable_;
 
 public:
-	DifferentiateVisitor (const std::string& variable);
+	Differentiate (const std::string& variable);
 
 	virtual boost::any visit (Node::Value& node);
 	virtual boost::any visit (Node::Variable& node);
@@ -16,3 +18,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node);
 	virtual boost::any visit (Node::MultiplicationDivision& node);
 };
+
+} // namespace Visitor

@@ -2,26 +2,28 @@
 
 #include <sstream>
 
-boost::any OptimizeVisitor::visit (Node::Value& node)
+namespace Visitor {
+
+boost::any Optimize::visit (Node::Value& node)
 {
 	/* identity */
 	return static_cast<Node::Base*> (node.clone().release());
 }
 
-boost::any OptimizeVisitor::visit (Node::Variable& node)
+boost::any Optimize::visit (Node::Variable& node)
 {
 	/* identity */
 	return static_cast<Node::Base*> (node.clone().release());
 }
 
-boost::any OptimizeVisitor::visit (Node::Function& node)
+boost::any Optimize::visit (Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Simplify error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any OptimizeVisitor::visit (Node::Power& node)
+boost::any Optimize::visit (Node::Power& node)
 {
 	/* recurse to children */
 	Node::Power::Ptr result (new Node::Power);
@@ -33,7 +35,7 @@ boost::any OptimizeVisitor::visit (Node::Power& node)
 	return static_cast<Node::Base*> (result.release());
 }
 
-boost::any OptimizeVisitor::visit (Node::AdditionSubtraction& node)
+boost::any Optimize::visit (Node::AdditionSubtraction& node)
 {
 	/* recurse to children */
 	Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
@@ -48,7 +50,7 @@ boost::any OptimizeVisitor::visit (Node::AdditionSubtraction& node)
 	return static_cast<Node::Base*> (result.release());
 }
 
-Node::Base::Ptr OptimizeVisitor::multiply_nodes (std::vector<Node::Base::Ptr>& vec)
+Node::Base::Ptr Optimize::multiply_nodes (std::vector<Node::Base::Ptr>& vec)
 {
 	if (vec.size() == 1) {
 		return std::move (vec.at (0));
@@ -61,7 +63,7 @@ Node::Base::Ptr OptimizeVisitor::multiply_nodes (std::vector<Node::Base::Ptr>& v
 	}
 }
 
-boost::any OptimizeVisitor::visit (Node::MultiplicationDivision& node)
+boost::any Optimize::visit (Node::MultiplicationDivision& node)
 {
 	Node::MultiplicationDivision::Ptr result;
 	std::vector<Node::Base::Ptr> multipliers, divisors;
@@ -92,3 +94,5 @@ boost::any OptimizeVisitor::visit (Node::MultiplicationDivision& node)
 		return static_cast<Node::Base*> (result.release());
 	}
 }
+
+} // namespace Visitor

@@ -2,7 +2,9 @@
 
 #include "visitor.h"
 
-class SimplifyVisitor : public Visitor
+namespace Visitor {
+
+class Simplify : public Base
 {
 	std::string variable_;
 
@@ -10,7 +12,7 @@ class SimplifyVisitor : public Visitor
 	void merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
 
 public:
-	SimplifyVisitor (const std::string& variable);
+	Simplify (const std::string& variable);
 
 	virtual boost::any visit (Node::Value& node);
 	virtual boost::any visit (Node::Variable& node);
@@ -19,3 +21,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node);
 	virtual boost::any visit (Node::MultiplicationDivision& node);
 };
+
+} // namespace Visitor

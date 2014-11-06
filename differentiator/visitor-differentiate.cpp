@@ -2,17 +2,19 @@
 
 #include <sstream>
 
-DifferentiateVisitor::DifferentiateVisitor(const std::string& variable)
+namespace Visitor {
+
+Differentiate::Differentiate(const std::string& variable)
 : variable_ (variable)
 {
 }
 
-boost::any DifferentiateVisitor::visit (Node::Value&)
+boost::any Differentiate::visit (Node::Value&)
 {
 	return static_cast<Node::Base*> (new Node::Value (0));
 }
 
-boost::any DifferentiateVisitor::visit (Node::Variable& node)
+boost::any Differentiate::visit (Node::Variable& node)
 {
 	if (node.name() == variable_) {
 		return static_cast<Node::Base*> (new Node::Value (1));
@@ -21,14 +23,14 @@ boost::any DifferentiateVisitor::visit (Node::Variable& node)
 	}
 }
 
-boost::any DifferentiateVisitor::visit (Node::Function& node)
+boost::any Differentiate::visit (Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Differentiate error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any DifferentiateVisitor::visit (Node::AdditionSubtraction& node)
+boost::any Differentiate::visit (Node::AdditionSubtraction& node)
 {
 	Node::AdditionSubtraction::Ptr result;
 
@@ -48,7 +50,7 @@ boost::any DifferentiateVisitor::visit (Node::AdditionSubtraction& node)
 	return static_cast<Node::Base*> (result.release());
 }
 
-boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
+boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 {
 	Node::MultiplicationDivision::Ptr so_far (new Node::MultiplicationDivision);
 	Node::Base::Ptr deriv_so_far;
@@ -128,7 +130,7 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 	return static_cast<Node::Base*> (deriv_so_far.release());
 }
 
-boost::any DifferentiateVisitor::visit (Node::Power& node)
+boost::any Differentiate::visit (Node::Power& node)
 {
 	/* f, a */
 	Node::Base::Ptr &base = node.children().at (0),
@@ -154,3 +156,5 @@ boost::any DifferentiateVisitor::visit (Node::Power& node)
 
 	return static_cast<Node::Base*> (result.release());
 }
+
+} // namespace Visitor

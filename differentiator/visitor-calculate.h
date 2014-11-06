@@ -2,7 +2,9 @@
 
 #include "visitor.h"
 
-class CalculateVisitor : public Visitor
+namespace Visitor {
+
+class Calculate : public Base
 {
 public:
 	virtual boost::any visit (Node::Value& node);
@@ -12,3 +14,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node);
 	virtual boost::any visit (Node::MultiplicationDivision& node);
 };
+
+} // namespace Visitor

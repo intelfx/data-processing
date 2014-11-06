@@ -2,7 +2,9 @@
 
 #include "visitor.h"
 
-class PrintVisitor : public Visitor
+namespace Visitor {
+
+class Print : public Base
 {
 	std::ostream& stream_;
 
@@ -10,7 +12,7 @@ class PrintVisitor : public Visitor
 	boost::any parenthesized_visit (Node::Base& node, size_t child);
 
 public:
-	PrintVisitor (std::ostream& stream);
+	Print (std::ostream& stream);
 
 	virtual boost::any visit (Node::Value& node);
 	virtual boost::any visit (Node::Variable& node);
@@ -19,3 +21,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node);
 	virtual boost::any visit (Node::MultiplicationDivision& node);
 };
+
+} // namespace Visitor

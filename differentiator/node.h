@@ -6,10 +6,14 @@
 #include <memory>
 #include <boost/any.hpp>
 
-class Visitor;
+namespace Visitor {
 
-#define DECLARE_ACCEPTOR virtual boost::any accept (Visitor& visitor)
-#define IMPLEMENT_ACCEPTOR(type) boost::any type::accept (Visitor& visitor) { return visitor.visit (*this); }
+class Base;
+
+} // namespace Visitor
+
+#define DECLARE_ACCEPTOR virtual boost::any accept (Visitor::Base& visitor)
+#define IMPLEMENT_ACCEPTOR(type) boost::any type::accept (Visitor::Base& visitor) { return visitor.visit (*this); }
 
 namespace Node
 {

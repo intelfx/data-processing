@@ -3,7 +3,9 @@
 #include <util.h>
 #include "node.h"
 
-class Visitor
+namespace Visitor {
+
+class Base
 {
 public:
 	virtual boost::any visit (Node::Value& node) = 0;
@@ -13,3 +15,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node) = 0;
 	virtual boost::any visit (Node::MultiplicationDivision& node) = 0;
 };
+
+} // namespace Visitor

@@ -2,24 +2,26 @@
 
 #include <sstream>
 
-boost::any CalculateVisitor::visit (Node::Value& node)
+namespace Visitor {
+
+boost::any Calculate::visit (Node::Value& node)
 {
 	return node.value();
 }
 
-boost::any CalculateVisitor::visit (Node::Variable& node)
+boost::any Calculate::visit (Node::Variable& node)
 {
 	return node.value();
 }
 
-boost::any CalculateVisitor::visit (Node::Function& node)
+boost::any Calculate::visit (Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Calculate error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any CalculateVisitor::visit (Node::Power& node)
+boost::any Calculate::visit (Node::Power& node)
 {
 	if (node.children().size() != 2) {
 		std::ostringstream reason;
@@ -33,7 +35,7 @@ boost::any CalculateVisitor::visit (Node::Power& node)
 	return powl (base, exponent);
 }
 
-boost::any CalculateVisitor::visit (Node::AdditionSubtraction& node)
+boost::any Calculate::visit (Node::AdditionSubtraction& node)
 {
 	data_t result = 0;
 
@@ -51,7 +53,7 @@ boost::any CalculateVisitor::visit (Node::AdditionSubtraction& node)
 	return result;
 }
 
-boost::any CalculateVisitor::visit (Node::MultiplicationDivision& node)
+boost::any Calculate::visit (Node::MultiplicationDivision& node)
 {
 	data_t result = 1;
 
@@ -68,3 +70,5 @@ boost::any CalculateVisitor::visit (Node::MultiplicationDivision& node)
 
 	return result;
 }
+
+} // namespace Visitor

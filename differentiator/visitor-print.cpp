@@ -1,11 +1,13 @@
 #include "visitor-print.h"
 
-PrintVisitor::PrintVisitor (std::ostream& stream)
+namespace Visitor {
+
+Print::Print (std::ostream& stream)
 : stream_ (stream)
 {
 }
 
-boost::any PrintVisitor::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& child)
+boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& child)
 {
 	bool need_parentheses = (child->priority() <= parent.priority());
 
@@ -22,26 +24,26 @@ boost::any PrintVisitor::parenthesized_visit (Node::Base& parent, Node::Base::Pt
 	return std::move (ret);
 }
 
-boost::any PrintVisitor::parenthesized_visit (Node::Base& parent, size_t child_idx)
+boost::any Print::parenthesized_visit (Node::Base& parent, size_t child_idx)
 {
 	return parenthesized_visit (parent, parent.children().at (child_idx));
 }
 
-boost::any PrintVisitor::visit (Node::Value& node)
+boost::any Print::visit (Node::Value& node)
 {
 	stream_ << node.value();
 
 	return boost::any();
 }
 
-boost::any PrintVisitor::visit (Node::Variable& node)
+boost::any Print::visit (Node::Variable& node)
 {
 	stream_ << node.name();
 
 	return boost::any();
 }
 
-boost::any PrintVisitor::visit (Node::Function& node)
+boost::any Print::visit (Node::Function& node)
 {
 	stream_ << node.name() << "(";
 
@@ -61,7 +63,7 @@ boost::any PrintVisitor::visit (Node::Function& node)
 	return boost::any();
 }
 
-boost::any PrintVisitor::visit (Node::Power& node)
+boost::any Print::visit (Node::Power& node)
 {
 	parenthesized_visit (node, 0);
 	stream_ << "^";
@@ -70,7 +72,7 @@ boost::any PrintVisitor::visit (Node::Power& node)
 	return boost::any();
 }
 
-boost::any PrintVisitor::visit (Node::AdditionSubtraction& node)
+boost::any Print::visit (Node::AdditionSubtraction& node)
 {
 	auto negation = node.negation().begin();
 	auto child = node.children().begin();
@@ -92,7 +94,7 @@ boost::any PrintVisitor::visit (Node::AdditionSubtraction& node)
 	return boost::any();
 }
 
-boost::any PrintVisitor::visit (Node::MultiplicationDivision& node)
+boost::any Print::visit (Node::MultiplicationDivision& node)
 {
 	auto reciprocation = node.reciprocation().begin();
 	auto child = node.children().begin();
@@ -113,3 +115,5 @@ boost::any PrintVisitor::visit (Node::MultiplicationDivision& node)
 
 	return boost::any();
 }
+
+} // namespace Visitor

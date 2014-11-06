@@ -2,17 +2,19 @@
 
 #include <sstream>
 
-SimplifyVisitor::SimplifyVisitor(const std::string& variable)
+namespace Visitor {
+
+Simplify::Simplify (const std::string& variable)
 : variable_ (variable)
 {
 }
 
-boost::any SimplifyVisitor::visit (Node::Value& node)
+boost::any Simplify::visit (Node::Value& node)
 {
 	return static_cast<Node::Base*> (node.clone().release());
 }
 
-boost::any SimplifyVisitor::visit (Node::Variable& node)
+boost::any Simplify::visit (Node::Variable& node)
 {
 	if (node.name() == variable_) {
 		return static_cast<Node::Base*> (node.clone().release());
@@ -21,14 +23,14 @@ boost::any SimplifyVisitor::visit (Node::Variable& node)
 	}
 }
 
-boost::any SimplifyVisitor::visit (Node::Function& node)
+boost::any Simplify::visit (Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Simplify error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any SimplifyVisitor::visit (Node::Power& node)
+boost::any Simplify::visit (Node::Power& node)
 {
 	Node::Base::Ptr base (boost::any_cast<Node::Base*> (node.children().at (0)->accept (*this))),
 	                exponent (boost::any_cast<Node::Base*> (node.children().at (1)->accept (*this)));
@@ -54,7 +56,7 @@ boost::any SimplifyVisitor::visit (Node::Power& node)
 	}
 }
 
-void SimplifyVisitor::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
+void Simplify::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
 {
 	auto child = node.children().begin();
 	auto negation = node.negation().begin();
@@ -84,7 +86,7 @@ void SimplifyVisitor::merge_node (data_t& result_value, Node::AdditionSubtractio
 	}
 }
 
-boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
+boost::any Simplify::visit (Node::AdditionSubtraction& node)
 {
 	data_t result_value = 0;
 	Node::AdditionSubtraction::Ptr result;
@@ -106,7 +108,7 @@ boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
 	}
 }
 
-void SimplifyVisitor::merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
+void Simplify::merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
 {
 	auto child = node.children().begin();
 	auto reciprocation = node.reciprocation().begin();
@@ -136,7 +138,7 @@ void SimplifyVisitor::merge_node (data_t& result_value, Node::MultiplicationDivi
 	}
 }
 
-boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
+boost::any Simplify::visit (Node::MultiplicationDivision& node)
 {
 	data_t result_value = 1;
 	Node::MultiplicationDivision::Ptr result;
@@ -161,3 +163,5 @@ boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
 }
+
+} // namespace Visitor

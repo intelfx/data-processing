@@ -2,7 +2,9 @@
 
 #include "visitor.h"
 
-class OptimizeVisitor : public Visitor
+namespace Visitor {
+
+class Optimize : public Base
 {
 	static Node::Base::Ptr multiply_nodes (std::vector<Node::Base::Ptr>& vec);
 
@@ -14,3 +16,5 @@ public:
 	virtual boost::any visit (Node::AdditionSubtraction& node);
 	virtual boost::any visit (Node::MultiplicationDivision& node);
 };
+
+} // namespace Visitor
