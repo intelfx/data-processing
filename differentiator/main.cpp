@@ -85,8 +85,7 @@ int main (int argc, char** argv)
 	read_variables (argv[1]);
 
 	for (int i = 3; i < argc; ++i) {
-		std::string s (argv[i]);
-		std::istringstream ss (s);
+		std::istringstream ss (argv[i]);
 		ss.exceptions (std::istream::failbit | std::istream::badbit);
 		parse_variable (variables, ss);
 	}

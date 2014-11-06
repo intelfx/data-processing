@@ -8,8 +8,7 @@ int main (int argc, char** argv)
 	double systematic_error = 0;
 
 	if (argc > 1) {
-		std::string s (argv[1]);
-		std::istringstream ss (s);
+		std::istringstream ss (argv[1]);
 		ss.exceptions (std::istream::badbit | std::istream::failbit);
 		ss >> systematic_error;
 	}
