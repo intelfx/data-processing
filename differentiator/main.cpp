@@ -134,13 +134,13 @@ int main (int argc, char** argv)
 		Node::Variable::Ptr error (new Node::Variable (it->first, it->second, true));
 		Node::Base::Ptr derivative = differentiate (tree, it->first);
 
-		std::cout << "   " << error->pretty_name() << " = " << error->value() << std::endl;
-		std::cout << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
-
 		if (fp_cmp (error->value(), 0) ||
 		    fp_cmp (derivative->accept_value (calculate), 0)) {
 			continue;
 		}
+
+		std::cout << "   " << error->pretty_name() << " = " << error->value() << std::endl;
+		std::cout << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
 
 		Node::Power::Ptr squared_derivative (new Node::Power);
 		squared_derivative->add_child (std::move (derivative));
