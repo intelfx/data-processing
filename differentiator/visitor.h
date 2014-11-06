@@ -16,14 +16,4 @@ public:
 	virtual boost::any visit (Node::MultiplicationDivision& node) = 0;
 };
 
-namespace Util
-{
-
-inline Node::Base::Ptr apply_transformation (Node::Base::Ptr& tree, Visitor::Base&& modifier)
-{
-	return Node::Base::Ptr (boost::any_cast<Node::Base*> (tree->accept (modifier)));
-}
-
-} // namespace Util
-
 } // namespace Visitor
