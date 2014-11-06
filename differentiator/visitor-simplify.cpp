@@ -95,7 +95,12 @@ boost::any SimplifyVisitor::visit (Node::AdditionSubtraction& node)
 		if (!fp_cmp (result_value, 0)) {
 			result->add_child (Node::Base::Ptr (new Node::Value (fabsl (result_value))), result_value < 0);
 		}
-		return static_cast<Node::Base*> (result.release());
+
+		if ((result->children().size() == 1) && !result->negation().at (0)) {
+			return static_cast<Node::Base*> (result->children().at (0).release());
+		} else {
+			return static_cast<Node::Base*> (result.release());
+		}
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
@@ -146,7 +151,12 @@ boost::any SimplifyVisitor::visit (Node::MultiplicationDivision& node)
 				result->add_child (Node::Base::Ptr (new Node::Value (result_value)), false);
 			}
 		}
-		return static_cast<Node::Base*> (result.release());
+
+		if ((result->children().size() == 1) && !result->reciprocation().at (0)) {
+			return static_cast<Node::Base*> (result->children().at (0).release());
+		} else {
+			return static_cast<Node::Base*> (result.release());
+		}
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
