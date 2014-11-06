@@ -20,7 +20,7 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 		return Classification::Alphabetical;
 	}
 
-	if (isdigit (*it)) {
+	if (isdigit (*it) || *it == '.') {
 		return Classification::Numeric;
 	}
 
