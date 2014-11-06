@@ -121,6 +121,12 @@ int main (int argc, char** argv)
 		std::cout << "   " << error->pretty_name() << " = " << error->value() << std::endl;
 		std::cout << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
 
+
+		if (fp_cmp (error->value(), 0) ||
+		    fp_cmp (boost::any_cast<data_t> (derivative->accept (calculate)), 0)) {
+			continue;
+		}
+
 		Node::Power::Ptr squared_derivative (new Node::Power);
 		squared_derivative->add_child (std::move (derivative));
 		squared_derivative->add_child (Node::Base::Ptr (new Node::Value (2)));
