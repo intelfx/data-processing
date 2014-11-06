@@ -92,7 +92,7 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 		/* common: f'g */
 		Node::MultiplicationDivision::Ptr deriv_f_g (new Node::MultiplicationDivision);
 		deriv_f_g->add_child (std::move (deriv_f), false);
-		deriv_f_g->add_child (std::move (g), false);
+		deriv_f_g->add_child (g->clone() /* g is needed later if reciprocation == true */, false);
 
 		/* common: fg' */
 		Node::MultiplicationDivision::Ptr f_deriv_g (new Node::MultiplicationDivision);
@@ -102,7 +102,7 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 		if (*reciprocation++) {
 			/* g^2 */
 			Node::Power::Ptr g_squared (new Node::Power);
-			g_squared->add_child (g->clone());
+			g_squared->add_child (std::move (g));
 			g_squared->add_child (Node::Base::Ptr (new Node::Value (2)));
 
 			/* f'g - fg' */
