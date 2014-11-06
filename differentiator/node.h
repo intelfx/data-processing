@@ -68,10 +68,14 @@ class Variable : public Base
 public:
 	typedef std::unique_ptr<Variable> Ptr;
 
-    Variable (const std::string& name, const ::Variable& variable);
+    Variable (const std::string& name, const ::Variable& variable, bool is_error);
 
 	const std::string& name() const { return name_; }
-	data_t value() const { return variable_.value; }
+	std::string pretty_name() const { return is_error_ ? "Δ" + name_ : name_;  }
+	data_t value() const { return is_error_ ? variable_.error : variable_.value; }
+
+	bool is_error() const { return is_error_; }
+	bool is_target_variable (const std::string& desired) const { return !is_error_ && (name_ == desired); }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -84,6 +88,7 @@ protected:
 private:
 	const std::string& name_;
 	const ::Variable& variable_;
+	bool is_error_;
 };
 
 class Function : public Base

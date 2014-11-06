@@ -16,7 +16,7 @@ boost::any Simplify::visit (Node::Value& node)
 
 boost::any Simplify::visit (Node::Variable& node)
 {
-	if (node.name() == variable_) {
+	if (node.is_target_variable (variable_)) {
 		return static_cast<Node::Base*> (node.clone().release());
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (node.value()));

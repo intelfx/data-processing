@@ -16,7 +16,7 @@ boost::any Differentiate::visit (Node::Value&)
 
 boost::any Differentiate::visit (Node::Variable& node)
 {
-	if (node.name() == variable_) {
+	if (node.is_target_variable (variable_)) {
 		return static_cast<Node::Base*> (new Node::Value (1));
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (0));

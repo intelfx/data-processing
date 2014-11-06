@@ -21,7 +21,7 @@ Base::Ptr Value::clone_bare() const
 
 Base::Ptr Variable::clone_bare() const
 {
-	return Base::Ptr (new Variable (name_, variable_));
+	return Base::Ptr (new Variable (name_, variable_, is_error_));
 }
 
 Base::Ptr Function::clone_bare() const

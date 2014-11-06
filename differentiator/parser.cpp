@@ -134,7 +134,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 	auto it = variables_.find (name);
 	if (it != variables_.end()) {
 		++current_;
-		return Node::Variable::Ptr (new Node::Variable (it->first, it->second));
+		return Node::Variable::Ptr (new Node::Variable (it->first, it->second, false));
 	} else {
 		std::ostringstream reason;
 		reason << "Parse error: unknown variable: '" << *current_ << "'";

@@ -16,9 +16,10 @@ Value::Value (data_t value)
 {
 }
 
-Variable::Variable (const std::string& name, const ::Variable& variable)
+Variable::Variable (const std::string& name, const ::Variable& variable, bool is_error)
 : name_ (name)
 , variable_ (variable)
+, is_error_ (is_error)
 {
 }
 
