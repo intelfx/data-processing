@@ -24,7 +24,16 @@ VariableMap variables;
 } // anonymous namespace
 
 /*
- * Bopulates the variable definition list by reading a file.
+ * Populates the variable definition with some predefined constants.
+ */
+
+void insert_constants()
+{
+	variables.insert (Variable::make ("pi", M_PI, 0));
+}
+
+/*
+ * Populates the variable definition list by reading a file.
  */
 
 void read_variables (const char* path)
@@ -85,6 +94,7 @@ int main (int argc, char** argv)
 		exit (EXIT_FAILURE);
 	}
 
+	insert_constants();
 	read_variables (argv[1]);
 
 	for (int i = 3; i < argc; ++i) {

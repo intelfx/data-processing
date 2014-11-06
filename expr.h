@@ -27,6 +27,11 @@ struct Variable
 	data_t value, error;
 
 	bool no_error() const { return fabsl (error) < eps; }
+
+	static std::pair<std::string, Variable> make (std::string name, data_t value, data_t error)
+	{
+		return std::pair<std::string, Variable> (std::move (name), Variable { value, error });
+	}
 };
 typedef std::map<std::string, Variable> VariableMap;
 
