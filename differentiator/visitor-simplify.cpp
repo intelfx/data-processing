@@ -64,7 +64,7 @@ boost::any Simplify::visit (Node::Power& node)
 			(*child++) = std::move (child_pwr);
 		}
 
-		return static_cast<Node::Base*> (base.release());
+		return boost::any_cast<Node::Base*> (base->accept (*this));
 	} else if (base_power) {
 		Node::Base::Ptr base_base (std::move (base_power->children().at (0))),
 		                base_exponent (std::move (base_power->children().at (1)));
@@ -76,7 +76,7 @@ boost::any Simplify::visit (Node::Power& node)
 		Node::Power::Ptr result (new Node::Power);
 		result->add_child (std::move (base_base));
 		result->add_child (std::move (result_exponent));
-		return static_cast<Node::Base*> (result.release());
+		return boost::any_cast<Node::Base*> (result->accept (*this));
 	} else {
 		Node::Power::Ptr result (new Node::Power);
 		result->add_child (std::move (base));
