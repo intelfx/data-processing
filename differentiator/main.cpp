@@ -58,7 +58,11 @@ void testcase_visitors (Node::Base::Ptr tree, const std::string& partial_variabl
 
 void simplify_tree (Node::Base::Ptr& tree, const std::string& partial_variable)
 {
-	tree = Visitor::Util::apply_transformation (tree, Visitor::Simplify (partial_variable));
+	if (getenv ("SIMPLIFY")) {
+		tree = Visitor::Util::apply_transformation (tree, Visitor::Simplify (partial_variable));
+	} else {
+		tree = Visitor::Util::apply_transformation (tree, Visitor::Simplify());
+	}
 	tree = Visitor::Util::apply_transformation (tree, Visitor::Optimize());
 }
 
