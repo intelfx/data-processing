@@ -31,8 +31,8 @@ boost::any Calculate::visit (Node::Power& node)
 
 	auto child = node.children().begin();
 
-	data_t base = boost::any_cast<data_t> ((*child++)->accept (*this)),
-	       exponent = boost::any_cast<data_t> ((*child++)->accept (*this));
+	data_t base = (*child++)->accept_value (*this),
+	       exponent = (*child++)->accept_value (*this);
 
 	return powl (base, exponent);
 }
@@ -46,9 +46,9 @@ boost::any Calculate::visit (Node::AdditionSubtraction& node)
 
 	while (child != node.children().end()) {
 		if (*negation++) {
-			result -= boost::any_cast<data_t> ((*child++)->accept (*this));
+			result -= (*child++)->accept_value (*this);
 		} else {
-			result += boost::any_cast<data_t> ((*child++)->accept (*this));
+			result += (*child++)->accept_value (*this);
 		}
 	}
 
@@ -64,9 +64,9 @@ boost::any Calculate::visit (Node::MultiplicationDivision& node)
 
 	while (child != node.children().end()) {
 		if (*reciprocation++) {
-			result /= boost::any_cast<data_t> ((*child++)->accept (*this));
+			result /= (*child++)->accept_value (*this);
 		} else {
-			result *= boost::any_cast<data_t> ((*child++)->accept (*this));
+			result *= (*child++)->accept_value (*this);
 		}
 	}
 

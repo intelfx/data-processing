@@ -32,19 +32,13 @@ boost::any Differentiate::visit (Node::Function& node)
 
 boost::any Differentiate::visit (Node::AdditionSubtraction& node)
 {
-	Node::AdditionSubtraction::Ptr result;
+	Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
 
 	auto negation = node.negation().begin();
 	auto child = node.children().begin();
 
 	while (child != node.children().end()) {
-		Node::Base* derivative = boost::any_cast<Node::Base*> ((*child++)->accept (*this));
-		if (derivative) {
-			if (!result) {
-				result = Node::AdditionSubtraction::Ptr (new Node::AdditionSubtraction);
-			}
-			result->add_child (Node::Base::Ptr (derivative), *negation++);
-		}
+		result->add_child ((*child++)->accept_ptr (*this), *negation++);
 	}
 
 	return static_cast<Node::Base*> (result.release());
@@ -64,7 +58,7 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 	if (*reciprocation) {
 		/* f, f' */
 		Node::Base::Ptr term ((*child)->clone()),
-		                deriv (boost::any_cast<Node::Base*> (term->accept (*this)));
+		                deriv ((*child)->accept_ptr (*this));
 
 		/* f^2 */
 		Node::Power::Ptr squared (new Node::Power);
@@ -82,14 +76,14 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 		deriv_so_far = std::move (current);
 	} else {
 		/* just f' */
-		deriv_so_far = Node::Base::Ptr (boost::any_cast<Node::Base*> ((*child)->accept (*this)));
+		deriv_so_far = (*child)->accept_ptr (*this);
 	}
 	so_far->add_child ((*child++)->clone(), *reciprocation++);
 
 	while (child != node.children().end()) {
 		/* common: g, g' */
 		Node::Base::Ptr g ((*child)->clone()),
-		                deriv_g (boost::any_cast<Node::Base*> (g->accept (*this)));
+		                deriv_g ((*child)->accept_ptr (*this));
 
 		/* common: f'g */
 		Node::MultiplicationDivision::Ptr deriv_f_g (new Node::MultiplicationDivision);
@@ -154,7 +148,7 @@ boost::any Differentiate::visit (Node::Power& node)
 	Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);
 	result->add_child (exponent->clone(), false);
 	result->add_child (std::move (pwr_minus_one), false);
-	result->add_child (Node::Base::Ptr (boost::any_cast<Node::Base*> (base->accept (*this))), false);
+	result->add_child (base->accept_ptr (*this), false);
 
 	return static_cast<Node::Base*> (result.release());
 }

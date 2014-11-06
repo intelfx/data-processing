@@ -29,7 +29,7 @@ boost::any Optimize::visit (Node::Power& node)
 	Node::Power::Ptr result (new Node::Power);
 
 	for (Node::Base::Ptr& child: node.children()) {
-		result->add_child (Node::Base::Ptr (boost::any_cast<Node::Base*> (child->accept (*this))));
+		result->add_child (child->accept_ptr (*this));
 	}
 
 	return static_cast<Node::Base*> (result.release());
@@ -44,7 +44,7 @@ boost::any Optimize::visit (Node::AdditionSubtraction& node)
 	auto negation = node.negation().begin();
 
 	while (child != node.children().end()) {
-		result->add_child (Node::Base::Ptr (boost::any_cast<Node::Base*> ((*child++)->accept (*this))), *negation++);
+		result->add_child ((*child++)->accept_ptr (*this), *negation++);
 	}
 
 	return static_cast<Node::Base*> (result.release());
@@ -72,7 +72,7 @@ boost::any Optimize::visit (Node::MultiplicationDivision& node)
 	auto reciprocation = node.reciprocation().begin();
 
 	while (child != node.children().end()) {
-		Node::Base::Ptr optimized (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
+		Node::Base::Ptr optimized ((*child++)->accept_ptr (*this));
 
 		if (*reciprocation++) {
 			divisors.push_back (std::move (optimized));

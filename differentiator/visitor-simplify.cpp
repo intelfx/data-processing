@@ -38,8 +38,8 @@ boost::any Simplify::visit (Node::Power& node)
 {
 	auto child = node.children().begin();
 
-	Node::Base::Ptr base (boost::any_cast<Node::Base*> ((*child++)->accept (*this))),
-	                exponent (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
+	Node::Base::Ptr base ((*child++)->accept_ptr (*this)),
+	                exponent ((*child++)->accept_ptr (*this));
 
 	Node::Value *base_value = dynamic_cast<Node::Value*> (base.get()),
 	            *exponent_value = dynamic_cast<Node::Value*> (exponent.get());
@@ -63,7 +63,7 @@ boost::any Simplify::visit (Node::Power& node)
 			child_pwr->add_child (exponent->clone());
 			child = std::move (child_pwr);
 		}
-		return boost::any_cast<Node::Base*> (base->accept (*this));
+		return base->accept_ptr (*this).release();
 	} else if (base_power) {
 		child = base_power->children().begin();
 
@@ -77,7 +77,7 @@ boost::any Simplify::visit (Node::Power& node)
 		Node::Power::Ptr result (new Node::Power);
 		result->add_child (std::move (base_base));
 		result->add_child (std::move (result_exponent));
-		return boost::any_cast<Node::Base*> (result->accept (*this));
+		return result->accept_ptr (*this).release();
 	} else {
 		Node::Power::Ptr result (new Node::Power);
 		result->add_child (std::move (base));
@@ -92,7 +92,7 @@ void Simplify::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr&
 	auto negation = node.negation().begin();
 
 	while (child != node.children().end()) {
-		Node::Base::Ptr simplified (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
+		Node::Base::Ptr simplified ((*child++)->accept_ptr (*this));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
 
@@ -144,7 +144,7 @@ void Simplify::merge_node (data_t& result_value, Node::MultiplicationDivision::P
 	auto reciprocation = node.reciprocation().begin();
 
 	while (child != node.children().end()) {
-		Node::Base::Ptr simplified (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
+		Node::Base::Ptr simplified ((*child++)->accept_ptr (*this));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
 
