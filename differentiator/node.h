@@ -36,6 +36,9 @@ public:
 
 	DECLARE_ACCEPTOR = 0;
 
+	Node::Base::Ptr accept_ptr (Visitor::Base& visitor) { return Node::Base::Ptr (boost::any_cast<Node::Base*> (accept (visitor))); }
+	data_t accept_value (Visitor::Base& visitor) { return boost::any_cast<data_t> (accept (visitor)); }
+
 protected:
 	virtual Ptr clone_bare() const = 0;
 
