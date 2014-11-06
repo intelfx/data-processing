@@ -50,7 +50,8 @@ boost::any DifferentiateVisitor::visit (Node::AdditionSubtraction& node)
 
 boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 {
-	Node::Base::Ptr result;
+	Node::MultiplicationDivision::Ptr so_far (new Node::MultiplicationDivision);
+	Node::Base::Ptr deriv_so_far;
 
 	auto reciprocation = node.reciprocation().begin();
 	auto child = node.children().begin();
@@ -58,9 +59,9 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 	/*
 	 * Handle first multiplier/divisor specially to simplify the expression.
 	 */
-	if (*reciprocation++) {
+	if (*reciprocation) {
 		/* f, f' */
-		Node::Base::Ptr term ((*child++)->clone()),
+		Node::Base::Ptr term ((*child)->clone()),
 		                deriv (boost::any_cast<Node::Base*> (term->accept (*this)));
 
 		/* f^2 */
@@ -76,30 +77,29 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 		Node::MultiplicationDivision::Ptr current (new Node::MultiplicationDivision);
 		current->add_child (std::move (minus_deriv), false);
 		current->add_child (std::move (squared), true);
-		result = std::move (current);
+		deriv_so_far = std::move (current);
 	} else {
 		/* just f' */
-		result = Node::Base::Ptr (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
+		deriv_so_far = Node::Base::Ptr (boost::any_cast<Node::Base*> ((*child)->accept (*this)));
 	}
+	so_far->add_child ((*child++)->clone(), *reciprocation++);
 
 	while (child != node.children().end()) {
-		/* common: f, g, f', g' */
-		Node::Base::Ptr f (std::move (result)),
-		                g ((*child++)->clone()),
-		                deriv_f (boost::any_cast<Node::Base*> (f->accept (*this))),
+		/* common: g, g' */
+		Node::Base::Ptr g ((*child)->clone()),
 		                deriv_g (boost::any_cast<Node::Base*> (g->accept (*this)));
 
 		/* common: f'g */
 		Node::MultiplicationDivision::Ptr deriv_f_g (new Node::MultiplicationDivision);
-		deriv_f_g->add_child (std::move (deriv_f), false);
+		deriv_f_g->add_child (std::move (deriv_so_far), false);
 		deriv_f_g->add_child (g->clone() /* g is needed later if reciprocation == true */, false);
 
 		/* common: fg' */
 		Node::MultiplicationDivision::Ptr f_deriv_g (new Node::MultiplicationDivision);
-		f_deriv_g->add_child (std::move (f), false);
+		f_deriv_g->add_child (so_far->clone() /* f is incremental */, false);
 		f_deriv_g->add_child (std::move (deriv_g), false);
 
-		if (*reciprocation++) {
+		if (*reciprocation) {
 			/* g^2 */
 			Node::Power::Ptr g_squared (new Node::Power);
 			g_squared->add_child (std::move (g));
@@ -114,17 +114,18 @@ boost::any DifferentiateVisitor::visit (Node::MultiplicationDivision& node)
 			Node::MultiplicationDivision::Ptr current (new Node::MultiplicationDivision);
 			current->add_child (std::move (top), false);
 			current->add_child (std::move (g_squared), true);
-			result = std::move (current);
+			deriv_so_far = std::move (current);
 		} else {
 			/* f'g + fg' */
 			Node::AdditionSubtraction::Ptr current (new Node::AdditionSubtraction);
 			current->add_child (std::move (deriv_f_g), false);
 			current->add_child (std::move (f_deriv_g), false);
-			result = std::move (current);
+			deriv_so_far = std::move (current);
 		}
+		so_far->add_child ((*child++)->clone(), *reciprocation++);
 	}
 
-	return static_cast<Node::Base*> (result.release());
+	return static_cast<Node::Base*> (deriv_so_far.release());
 }
 
 boost::any DifferentiateVisitor::visit (Node::Power& node)
