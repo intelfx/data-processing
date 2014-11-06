@@ -2,8 +2,9 @@
 
 namespace Visitor {
 
-Print::Print (std::ostream& stream)
+Print::Print (std::ostream& stream, bool substitute)
 : stream_ (stream)
+, substitute_ (substitute)
 {
 }
 
@@ -38,7 +39,11 @@ boost::any Print::visit (Node::Value& node)
 
 boost::any Print::visit (Node::Variable& node)
 {
-	stream_ << node.name();
+	if (substitute_) {
+		stream_ << node.value();
+	} else {
+		stream_ << node.pretty_name();
+	}
 
 	return boost::any();
 }

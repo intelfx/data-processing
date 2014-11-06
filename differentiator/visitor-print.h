@@ -7,12 +7,13 @@ namespace Visitor {
 class Print : public Base
 {
 	std::ostream& stream_;
+	bool substitute_;
 
 	boost::any parenthesized_visit (Node::Base& node, Node::Base::Ptr& child);
 	boost::any parenthesized_visit (Node::Base& node, size_t child);
 
 public:
-	Print (std::ostream& stream);
+	Print (std::ostream& stream, bool substitute);
 
 	virtual boost::any visit (Node::Value& node);
 	virtual boost::any visit (Node::Variable& node);
