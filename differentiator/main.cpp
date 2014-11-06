@@ -141,8 +141,8 @@ int main (int argc, char** argv)
 	full_error->add_child (Node::Base::Ptr (new Node::Value (0.5)));
 
 	std::cout << std::endl
-	          << "Squared error:" << std::endl;
-	std::cout << "ΔF^2 = "; full_error->accept (print_symbolic); std::cout << " =" << std::endl;
-	std::cout << "     = "; full_error->accept (print_substitute); std::cout << " =" << std::endl;
-	std::cout << "     = " << boost::any_cast<data_t> (full_error->accept (calculate)) << std::endl;
+	          << "Total error:" << std::endl;
+	std::cout << "ΔF = "; full_error->accept (print_symbolic); std::cout << " =" << std::endl;
+	std::cout << "   = "; full_error->accept (print_substitute); std::cout << " =" << std::endl;
+	std::cout << "   = " << boost::any_cast<data_t> (full_error->accept (calculate)) << std::endl;
 }
