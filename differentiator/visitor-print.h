@@ -10,7 +10,6 @@ class Print : public Base
 	bool substitute_;
 
 	boost::any parenthesized_visit (Node::Base& node, Node::Base::Ptr& child);
-	boost::any parenthesized_visit (Node::Base& node, size_t child);
 
 public:
 	Print (std::ostream& stream, bool substitute);

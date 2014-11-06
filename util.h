@@ -9,6 +9,7 @@
 #include <numeric>
 #include <vector>
 #include <map>
+#include <list>
 #include <cmath>
 #include <cstdlib>
 

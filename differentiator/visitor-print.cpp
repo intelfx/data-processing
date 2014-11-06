@@ -25,11 +25,6 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 	return std::move (ret);
 }
 
-boost::any Print::parenthesized_visit (Node::Base& parent, size_t child_idx)
-{
-	return parenthesized_visit (parent, parent.children().at (child_idx));
-}
-
 boost::any Print::visit (Node::Value& node)
 {
 	stream_ << node.value();
@@ -70,9 +65,11 @@ boost::any Print::visit (Node::Function& node)
 
 boost::any Print::visit (Node::Power& node)
 {
-	parenthesized_visit (node, 0);
+	auto child = node.children().begin();
+
+	parenthesized_visit (node, *child++);
 	stream_ << "^";
-	parenthesized_visit (node, 1);
+	parenthesized_visit (node, *child++);
 
 	return boost::any();
 }

@@ -29,7 +29,7 @@ public:
 	void add_child (Ptr&& node);
 
 	Ptr clone() const;
-	std::vector<Ptr>& children() { return children_; }
+	std::list<Ptr>& children() { return children_; }
 
 	virtual int priority() const = 0;
 	virtual void Dump (std::ostream& str) = 0;
@@ -42,7 +42,7 @@ public:
 protected:
 	virtual Ptr clone_bare() const = 0;
 
-	std::vector<Ptr> children_;
+	std::list<Ptr> children_;
 };
 
 class Value : public Base
@@ -136,7 +136,7 @@ public:
 
 	void add_child (Base::Ptr&& node, bool negated);
 
-	std::vector<bool>& negation() { return negation_; }
+	std::list<bool>& negation() { return negation_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -147,7 +147,7 @@ protected:
     virtual Base::Ptr clone_bare() const;
 
 private:
-	std::vector<bool> negation_;
+	std::list<bool> negation_;
 };
 
 class MultiplicationDivision : public Base
@@ -157,7 +157,7 @@ public:
 
 	void add_child (Base::Ptr&& node, bool reciprocated);
 
-	std::vector<bool>& reciprocation() { return reciprocation_; }
+	std::list<bool>& reciprocation() { return reciprocation_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -168,7 +168,7 @@ protected:
     virtual Base::Ptr clone_bare() const;
 
 private:
-	std::vector<bool> reciprocation_;
+	std::list<bool> reciprocation_;
 };
 
 } // namespace Node

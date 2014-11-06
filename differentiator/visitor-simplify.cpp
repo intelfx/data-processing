@@ -36,8 +36,10 @@ boost::any Simplify::visit (Node::Function& node)
 
 boost::any Simplify::visit (Node::Power& node)
 {
-	Node::Base::Ptr base (boost::any_cast<Node::Base*> (node.children().at (0)->accept (*this))),
-	                exponent (boost::any_cast<Node::Base*> (node.children().at (1)->accept (*this)));
+	auto child = node.children().begin();
+
+	Node::Base::Ptr base (boost::any_cast<Node::Base*> ((*child++)->accept (*this))),
+	                exponent (boost::any_cast<Node::Base*> ((*child++)->accept (*this)));
 
 	Node::Value *base_value = dynamic_cast<Node::Value*> (base.get()),
 	            *exponent_value = dynamic_cast<Node::Value*> (exponent.get());
@@ -55,7 +57,7 @@ boost::any Simplify::visit (Node::Power& node)
 	} else if (exponent_value && fp_cmp (exponent_value->value(), 1)) {
 		return static_cast<Node::Base*> (base.release());
 	} else if (base_muldiv) {
-		auto child = base_muldiv->children().begin();
+		child = base_muldiv->children().begin();
 
 		while (child != base_muldiv->children().end()) {
 			Node::Power::Ptr child_pwr (new Node::Power);
@@ -66,8 +68,10 @@ boost::any Simplify::visit (Node::Power& node)
 
 		return boost::any_cast<Node::Base*> (base->accept (*this));
 	} else if (base_power) {
-		Node::Base::Ptr base_base (std::move (base_power->children().at (0))),
-		                base_exponent (std::move (base_power->children().at (1)));
+		child = base_power->children().begin();
+
+		Node::Base::Ptr base_base (std::move (*child++)),
+		                base_exponent (std::move (*child++));
 
 		Node::MultiplicationDivision::Ptr result_exponent (new Node::MultiplicationDivision);
 		result_exponent->add_child (std::move (base_exponent), false);
@@ -127,8 +131,8 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 			result->add_child (Node::Base::Ptr (new Node::Value (fabsl (result_value))), result_value < 0);
 		}
 
-		if ((result->children().size() == 1) && !result->negation().at (0)) {
-			return static_cast<Node::Base*> (result->children().at (0).release());
+		if ((result->children().size() == 1) && !result->negation().front()) {
+			return static_cast<Node::Base*> (result->children().front().release());
 		} else {
 			return static_cast<Node::Base*> (result.release());
 		}
@@ -183,8 +187,8 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 			}
 		}
 
-		if ((result->children().size() == 1) && !result->reciprocation().at (0)) {
-			return static_cast<Node::Base*> (result->children().at (0).release());
+		if ((result->children().size() == 1) && !result->reciprocation().front()) {
+			return static_cast<Node::Base*> (result->children().front().release());
 		} else {
 			return static_cast<Node::Base*> (result.release());
 		}

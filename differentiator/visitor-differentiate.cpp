@@ -132,9 +132,11 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 
 boost::any Differentiate::visit (Node::Power& node)
 {
+	auto child = node.children().begin();
+
 	/* f, a */
-	Node::Base::Ptr &base = node.children().at (0),
-	                &exponent = node.children().at (1);
+	Node::Base::Ptr &base = *child++,
+	                &exponent = *child++;
 
 	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent.get());
 	if (!exponent_value) {

@@ -29,8 +29,10 @@ boost::any Calculate::visit (Node::Power& node)
 		throw std::logic_error (reason.str());
 	}
 
-	data_t base = boost::any_cast<data_t> (node.children().at (0)->accept (*this)),
-	       exponent = boost::any_cast<data_t> (node.children().at (1)->accept (*this));
+	auto child = node.children().begin();
+
+	data_t base = boost::any_cast<data_t> ((*child++)->accept (*this)),
+	       exponent = boost::any_cast<data_t> ((*child++)->accept (*this));
 
 	return powl (base, exponent);
 }
