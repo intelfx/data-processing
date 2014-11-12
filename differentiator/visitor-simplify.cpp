@@ -128,11 +128,32 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 			result->add_child (Node::Base::Ptr (new Node::Value (fabsl (result_value))), result_value < 0);
 		}
 
-		if ((result->children().size() == 1) && !result->negation().front()) {
-			return static_cast<Node::Base*> (result->children().front().release());
-		} else {
-			return static_cast<Node::Base*> (result.release());
+		if (result->children().size() == 1) {
+			Node::Base::Ptr& child = result->children().front();
+
+			if (!result->negation().front()) {
+				return static_cast<Node::Base*> (child.release());
+			} else {
+				Node::MultiplicationDivision* child_muldiv = dynamic_cast<Node::MultiplicationDivision*> (child.get());
+				if (child_muldiv) {
+					// push sign into the mul-div node
+					// the constant, if exists, is the first child of a mul-div
+					Node::Base::Ptr& child_child = child->children().front();
+					Node::Value* child_child_value = dynamic_cast<Node::Value*> (child_child.get());
+					if (child_child_value) {
+						// multiply the constant by -1, if it exists
+						child_child_value->set_value (child_child_value->value() * -1);
+					} else {
+						// insert the constant, if it doesn't
+						child_muldiv->add_child_front (Node::Base::Ptr (new Node::Value (-1)), false);
+					}
+
+					return static_cast<Node::Base*> (child.release());
+				}
+			}
 		}
+
+		return static_cast<Node::Base*> (result.release());
 	} else {
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
