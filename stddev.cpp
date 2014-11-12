@@ -24,16 +24,20 @@ int main (int argc, char** argv)
 
 	double stddev = sqrt (squared_difference_sum / (data.size() - 1));
 	double stderror = sqrt (squared_difference_sum) / data.size();
+	double total_error;
 
-	std::cout << "average: " << average << std::endl;
+	std::cerr << "average: " << average << std::endl;
 	if (verbose) {
-		std::cout << "standard deviation of the sample: " << stddev << std::endl;
+		std::cerr << "standard deviation of the sample: " << stddev << std::endl;
 	}
-	std::cout << "standard error of the average: " << stderror << std::endl;
+	std::cerr << "standard error of the average: " << stderror << std::endl;
 
 	if (systematic_error) {
-		std::cout << "systematic error: " << systematic_error << std::endl;
-		std::cout << "total error of the average: " << sqrt (sq (stderror) + sq (systematic_error)) << std::endl;
+		total_error = sqrt (sq (stderror) + sq (systematic_error));
+		std::cerr << "systematic error: " << systematic_error << std::endl;
+		std::cerr << "total error of the average: " << total_error << std::endl;
+	} else {
+		total_error = stderror;
 	}
 
 	if (verbose) {
@@ -45,7 +49,7 @@ int main (int argc, char** argv)
 
 		for (size_t sigma = 1; sigma <= MAX_SIGMA; ++sigma) {
 			size_t count = measurements_in_range[sigma - 1];
-			std::cout << "error = " << sigma << " sigma (" << stddev * sigma << "): " << count << " measurements (" << (double) 100 * count / data.size() << "%)" << std::endl;
+			std::cerr << "error = " << sigma << " sigma (" << stddev * sigma << "): " << count << " measurements (" << (double) 100 * count / data.size() << "%)" << std::endl;
 		}
 	}
 }
