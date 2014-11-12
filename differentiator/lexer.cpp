@@ -16,7 +16,7 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 		return Classification::Whitespace;
 	}
 
-	if (isalpha (*it)) {
+	if (isalpha (*it) || *it == '_') {
 		return Classification::Alphabetical;
 	}
 
