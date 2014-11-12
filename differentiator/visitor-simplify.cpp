@@ -178,9 +178,9 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 	if (result && !fp_cmp (result_value, 0)) {
 		if (!fp_cmp (result_value, 1)) {
 			if (fabsl (result_value) < 1) {
-				result->add_child (Node::Base::Ptr (new Node::Value (1 / result_value)), true);
+				result->add_child_front (Node::Base::Ptr (new Node::Value (1 / result_value)), true);
 			} else {
-				result->add_child (Node::Base::Ptr (new Node::Value (result_value)), false);
+				result->add_child_front (Node::Base::Ptr (new Node::Value (result_value)), false);
 			}
 		}
 

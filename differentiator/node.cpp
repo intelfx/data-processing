@@ -11,6 +11,11 @@ void Base::add_child (Ptr&& node)
 	children_.push_back (std::move (node));
 }
 
+void Base::add_child_front (Ptr&& node)
+{
+	children_.push_front (std::move (node));
+}
+
 Value::Value (data_t value)
 : value_ (value)
 {
@@ -34,10 +39,22 @@ void AdditionSubtraction::add_child (Base::Ptr&& node, bool negated)
 	negation_.push_back (negated);
 }
 
+void AdditionSubtraction::add_child_front (Base::Ptr&& node, bool negated)
+{
+	Base::add_child_front (std::move (node));
+	negation_.push_front (negated);
+}
+
 void MultiplicationDivision::add_child (Base::Ptr&& node, bool reciprocated)
 {
 	Base::add_child (std::move (node));
 	reciprocation_.push_back (reciprocated);
+}
+
+void MultiplicationDivision::add_child_front (Base::Ptr&& node, bool reciprocated)
+{
+	Base::add_child_front (std::move (node));
+	reciprocation_.push_front (reciprocated);
 }
 
 IMPLEMENT_ACCEPTOR (Value);

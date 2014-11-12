@@ -27,6 +27,7 @@ public:
 	virtual ~Base();
 
 	void add_child (Ptr&& node);
+	void add_child_front (Ptr&& node);
 
 	Ptr clone() const;
 	std::list<Ptr>& children() { return children_; }
@@ -53,6 +54,7 @@ public:
 	Value (data_t value);
 
 	data_t value() const { return value_; }
+	void set_value (data_t value) { value_ = value; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
@@ -135,6 +137,7 @@ public:
 	typedef std::unique_ptr<AdditionSubtraction> Ptr;
 
 	void add_child (Base::Ptr&& node, bool negated);
+	void add_child_front (Base::Ptr&& node, bool negated);
 
 	std::list<bool>& negation() { return negation_; }
 
@@ -156,6 +159,7 @@ public:
 	typedef std::unique_ptr<MultiplicationDivision> Ptr;
 
 	void add_child (Base::Ptr&& node, bool reciprocated);
+	void add_child_front (Base::Ptr&& node, bool reciprocated);
 
 	std::list<bool>& reciprocation() { return reciprocation_; }
 
