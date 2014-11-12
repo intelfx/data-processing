@@ -6,11 +6,18 @@ static const size_t MAX_SIGMA = 2;
 int main (int argc, char** argv)
 {
 	double systematic_error = 0;
+	std::string variable_name;
 
 	if (argc > 1) {
 		std::istringstream ss (argv[1]);
 		ss.exceptions (std::istream::badbit | std::istream::failbit);
 		ss >> systematic_error;
+	}
+
+	if (argc > 2) {
+		std::istringstream ss (argv[2]);
+		ss.exceptions (std::istream::badbit | std::istream::failbit);
+		ss >> variable_name;
 	}
 
 	bool verbose = !getenv ("TERSE");
@@ -26,6 +33,9 @@ int main (int argc, char** argv)
 	double stderror = sqrt (squared_difference_sum) / data.size();
 	double total_error;
 
+	if (!variable_name.empty()) {
+		std::cerr << "variable: " << variable_name << std::endl;
+	}
 	std::cerr << "average: " << average << std::endl;
 	if (verbose) {
 		std::cerr << "standard deviation of the sample: " << stddev << std::endl;
@@ -51,5 +61,9 @@ int main (int argc, char** argv)
 			size_t count = measurements_in_range[sigma - 1];
 			std::cerr << "error = " << sigma << " sigma (" << stddev * sigma << "): " << count << " measurements (" << (double) 100 * count / data.size() << "%)" << std::endl;
 		}
+	}
+
+	if (!variable_name.empty()) {
+		std::cout << variable_name << " " << average << " " << total_error << std::endl;
 	}
 }
