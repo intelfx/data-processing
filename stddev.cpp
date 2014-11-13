@@ -15,6 +15,7 @@ int main (int argc, char** argv)
 	}
 
 	bool verbose = !getenv ("TERSE");
+	bool data_with_errors = getenv ("INPUT_ERRORS");
 	bool machine_output = false;
 
 	if (char* output_variable = getenv ("OUTPUT")) {
@@ -28,7 +29,13 @@ int main (int argc, char** argv)
 
 	std::cin.exceptions (std::istream::badbit | std::istream::failbit);
 
-	auto data = read_into_vector<double> (std::cin);
+	std::vector<double> data;
+	if (data_with_errors) {
+		std::tie (data, systematic_error) = read_into_vector_errors<double> (std::cin);
+	} else {
+		data = read_into_vector<double> (std::cin);
+	}
+
 	double average = avg (data);
 	double squared_difference_sum = std::accumulate (data.begin(), data.end(), (double) 0,
 	                                                 [average] (double acc, double value) { return acc + (value - average) * (value - average); });
