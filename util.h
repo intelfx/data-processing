@@ -51,6 +51,23 @@ inline std::vector<T> read_into_vector (std::istream& in)
 	return std::move (ret);
 }
 
+template <typename T>
+inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
+{
+	std::vector<T> ret;
+	T ret_error = 0;
+
+	while (!in.eof()) {
+		T value, error;
+		std::cin >> value >> error >> std::ws;
+
+		ret_error = std::max (ret_error, error);
+		ret.push_back (std::move (value));
+	}
+
+	return std::pair<std::vector<T>, T> (std::move (ret), std::move (ret_error));
+}
+
 /*
  * Numeric: returns average value of the vector.
  */
