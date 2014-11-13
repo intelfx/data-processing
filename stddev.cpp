@@ -14,13 +14,17 @@ int main (int argc, char** argv)
 		ss >> systematic_error;
 	}
 
-	if (argc > 2) {
-		std::istringstream ss (argv[2]);
-		ss.exceptions (std::istream::badbit | std::istream::failbit);
-		ss >> variable_name;
-	}
-
 	bool verbose = !getenv ("TERSE");
+	bool machine_output = false;
+
+	if (char* output_variable = getenv ("OUTPUT")) {
+		if (output_variable[0] != '\0') {
+			variable_name = std::string (output_variable);
+			machine_output = true;
+		} else {
+			std::cerr << "WARNING: OUTPUT= variable is set but empty; set it to desired variable name" << std::endl;
+		}
+	}
 
 	std::cin.exceptions (std::istream::badbit | std::istream::failbit);
 
@@ -63,7 +67,7 @@ int main (int argc, char** argv)
 		}
 	}
 
-	if (!variable_name.empty()) {
+	if (machine_output) {
 		std::cout << variable_name << " " << average << " " << total_error << std::endl;
 	}
 }
