@@ -16,6 +16,9 @@ int main (int argc, char** argv)
 		exit (EXIT_FAILURE);
 	}
 
+	bool verbose = !getenv ("TERSE");
+	bool machine_output = getenv ("OUTPUT");
+
 	insert_constants();
 	read_variables (argv[1]);
 
@@ -27,28 +30,32 @@ int main (int argc, char** argv)
 
 	std::string expression (argv[2]);
 
-	std::cout << "Parameters:" << std::endl;
+	if (verbose) {
+		std::cerr << "Parameters:" << std::endl;
 
-	std::cout << " F(...) = " << argv[2] << std::endl;
+		std::cerr << " F(...) = " << expression << std::endl;
 
-	for (auto it = variables.begin(); it != variables.end(); ++it) {
-		std::cout << " " << it->first << " = " << it->second.value << " ± " << it->second.error << std::endl;
+		for (auto it = variables.begin(); it != variables.end(); ++it) {
+			std::cerr << " " << it->first << " = " << it->second.value << " ± " << it->second.error << std::endl;
+		}
 	}
 
 	Node::Base::Ptr tree = Parser (expression, variables).parse();
-	Visitor::Print print_symbolic (std::cout, false),
-	               print_substitute (std::cout, true);
+	Visitor::Print print_symbolic (std::cerr, false),
+	               print_substitute (std::cerr, true);
 	Visitor::Calculate calculate;
 
-	std::cout << std::endl
-	          << "Value:" << std::endl;
+	if (verbose) {
+		std::cerr << std::endl
+				<< "Value:" << std::endl;
 
-	std::cout << "F = "; tree->accept (print_symbolic); std::cout << " =" << std::endl;
-	std::cout << "  = "; tree->accept (print_substitute); std::cout << " =" << std::endl;
-	std::cout << "  = " << tree->accept_value (calculate) << std::endl;
+		std::cerr << "F = "; tree->accept (print_symbolic); std::cerr << " =" << std::endl;
+		std::cerr << "  = "; tree->accept (print_substitute); std::cerr << " =" << std::endl;
+		std::cerr << "  = " << tree->accept_value (calculate) << std::endl;
 
-	std::cout << std::endl
-	          << "Partial derivatives:" << std::endl;
+		std::cerr << std::endl
+		          << "Partial derivatives:" << std::endl;
+	}
 
 	Node::AdditionSubtraction::Ptr full_squared_error (new Node::AdditionSubtraction);
 
@@ -61,8 +68,10 @@ int main (int argc, char** argv)
 			continue;
 		}
 
-		std::cout << "   " << error->pretty_name() << " = " << error->value() << std::endl;
-		std::cout << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
+		if (verbose) {
+			std::cerr << "   " << error->pretty_name() << " = " << error->value() << std::endl;
+			std::cerr << "dF/d" << it->first << " = "; derivative->accept (print_symbolic); std::cerr << std::endl;
+		}
 
 		Node::Power::Ptr squared_derivative (new Node::Power);
 		squared_derivative->add_child (std::move (derivative));
@@ -86,9 +95,19 @@ int main (int argc, char** argv)
 	Node::Base::Ptr error (std::move (full_error));
 	error = simplify_tree (error);
 
-	std::cout << std::endl
-	          << "Total error:" << std::endl;
-	std::cout << "ΔF = "; error->accept (print_symbolic); std::cout << " =" << std::endl;
-	std::cout << "   = "; error->accept (print_substitute); std::cout << " =" << std::endl;
-	std::cout << "   = " << error->accept_value (calculate) << std::endl;
+	if (verbose) {
+		std::cerr << std::endl
+		          << "Total error:" << std::endl;
+		std::cerr << "ΔF = "; error->accept (print_symbolic); std::cerr << " =" << std::endl;
+		std::cerr << "   = "; error->accept (print_substitute); std::cerr << " =" << std::endl;
+		std::cerr << "   = " << error->accept_value (calculate) << std::endl;
+	} else {
+		std::cerr << " F(...) = " << expression
+		          << " F = " << tree->accept_value (calculate)
+		          << " ΔF = " << error->accept_value (calculate) << std::endl;
+	}
+
+	if (machine_output) {
+		std::cout << tree->accept_value (calculate) << " " << error->accept_value (calculate) << std::endl;
+	}
 }
