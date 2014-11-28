@@ -8,8 +8,8 @@ class Simplify : public Base
 {
 	std::string simplification_variable_;
 
-	void merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation);
-	void merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
+	void simplify_nested_nodes (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation);
+	void simplify_nested_nodes (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
 
 public:
 	Simplify (const std::string& variable);

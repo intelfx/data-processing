@@ -86,7 +86,7 @@ boost::any Simplify::visit (Node::Power& node)
 	}
 }
 
-void Simplify::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
+void Simplify::simplify_nested_nodes (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
 {
 	auto child = node.children().begin();
 	auto negation = node.negation().begin();
@@ -108,7 +108,7 @@ void Simplify::merge_node (data_t& result_value, Node::AdditionSubtraction::Ptr&
 			}
 
 			if (simplified_addsub) {
-				merge_node (result_value, result, *simplified_addsub, *negation++ ^ node_negation);
+				simplify_nested_nodes (result_value, result, *simplified_addsub, *negation++ ^ node_negation);
 			} else {
 				result->add_child (std::move (simplified), *negation++ ^ node_negation);
 			}
@@ -121,7 +121,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 	data_t result_value = 0;
 	Node::AdditionSubtraction::Ptr result;
 
-	merge_node (result_value, result, node, false);
+	simplify_nested_nodes (result_value, result, node, false);
 
 	if (result) {
 		if (!fp_cmp (result_value, 0)) {
@@ -159,7 +159,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 	}
 }
 
-void Simplify::merge_node (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
+void Simplify::simplify_nested_nodes (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
 {
 	auto child = node.children().begin();
 	auto reciprocation = node.reciprocation().begin();
@@ -181,7 +181,7 @@ void Simplify::merge_node (data_t& result_value, Node::MultiplicationDivision::P
 			}
 
 			if (simplified_muldiv) {
-				merge_node (result_value, result, *simplified_muldiv, *reciprocation++ ^ node_reciprocation);
+				simplify_nested_nodes (result_value, result, *simplified_muldiv, *reciprocation++ ^ node_reciprocation);
 			} else {
 				result->add_child (std::move (simplified), *reciprocation++ ^ node_reciprocation);
 			}
@@ -194,7 +194,7 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 	data_t result_value = 1;
 	Node::MultiplicationDivision::Ptr result;
 
-	merge_node (result_value, result, node, false);
+	simplify_nested_nodes (result_value, result, node, false);
 
 	if (result && !fp_cmp (result_value, 0)) {
 		if (!fp_cmp (result_value, 1)) {
