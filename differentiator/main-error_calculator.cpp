@@ -16,8 +16,20 @@ int main (int argc, char** argv)
 		exit (EXIT_FAILURE);
 	}
 
+	std::string variable_name;
 	bool verbose = !getenv ("TERSE");
-	bool machine_output = getenv ("OUTPUT");
+	bool machine_output = false;
+
+	if (char* output_variable = getenv ("OUTPUT")) {
+		if (output_variable[0] != '\0') {
+			variable_name = std::string (output_variable);
+			machine_output = true;
+		} else {
+			std::cerr << "WARNING: OUTPUT= variable is set but empty; set it to desired variable name" << std::endl;
+		}
+	} else if (getenv ("OUTPUT_BARE")) {
+		machine_output = true;
+	}
 
 	insert_constants();
 	read_variables (argv[1]);
@@ -108,6 +120,9 @@ int main (int argc, char** argv)
 	}
 
 	if (machine_output) {
+		if (!variable_name.empty()) {
+			std::cout << variable_name << " ";
+		}
 		std::cout << tree->accept_value (calculate) << " " << error->accept_value (calculate) << std::endl;
 	}
 }
