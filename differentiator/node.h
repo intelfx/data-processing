@@ -32,6 +32,7 @@ public:
 	DECLARE_ACCEPTOR = 0;
 
 	virtual Ptr clone() const = 0;
+	virtual bool compare (const Ptr& rhs) const = 0;
 
 	Node::Base::Ptr accept_ptr (Visitor::Base& visitor) { return Node::Base::Ptr (boost::any_cast<Node::Base*> (accept (visitor))); }
 	data_t accept_value (Visitor::Base& visitor) { return boost::any_cast<data_t> (accept (visitor)); }
@@ -104,6 +105,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 
 private:
 	data_t value_;
@@ -129,6 +131,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 
 private:
 	const std::string& name_;
@@ -151,6 +154,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 
 private:
 	std::string name_;
@@ -167,6 +171,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 };
 
 struct AdditionSubtractionTag
@@ -188,6 +193,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 
 private:
 	std::list<bool> negation_;
@@ -214,6 +220,7 @@ public:
 	DECLARE_ACCEPTOR;
 
     virtual Base::Ptr clone() const;
+    virtual bool compare (const Base::Ptr& rhs) const;
 };
 
 template <typename Tag>

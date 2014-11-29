@@ -1,6 +1,6 @@
 add_library (calculator
              lexer.cpp parser.cpp
-             node.cpp node-dump.cpp node-priority.cpp
+             node.cpp node-dump.cpp node-priority.cpp node-compare.cpp
              visitor-print.cpp visitor-calculate.cpp node-clone.cpp visitor-simplify.cpp visitor-optimize.cpp visitor-differentiate.cpp
              util-tree.cpp)
 
