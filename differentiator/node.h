@@ -60,6 +60,8 @@ public:
 	void add_child_front (Base::Ptr&& node, const Tag& tag);
 	void add_children_from (const TaggedChildList<Tag>& rhs);
 
+	static bool compare_child (const Child& _1, const Child& _2);
+
 protected:
 	std::list<Child> children_;
 };
@@ -78,6 +80,8 @@ public:
 	void add_child (Base::Ptr&& node);
 	void add_child_front (Base::Ptr&& node);
 	void add_children_from (const TaggedChildList<void>& rhs);
+
+	static bool compare_child (const Base::Ptr& _1, const Base::Ptr& _2);
 
 protected:
 	std::list<Base::Ptr> children_;
@@ -232,6 +236,13 @@ void TaggedChildList<Tag>::add_children_from (const TaggedChildList<Tag>& rhs)
 	}
 }
 
+template <typename Tag>
+bool TaggedChildList<Tag>::compare_child (const Child& _1, const Child& _2)
+{
+	return (_1.tag == _2.tag) &&
+	       (_1.node->compare (_2.node));
+}
+
 inline void TaggedChildList<void>::add_child (Base::Ptr&& node)
 {
 	children_.push_back (std::move (node));
@@ -247,6 +258,11 @@ inline void TaggedChildList<void>::add_children_from (const Node::TaggedChildLis
 	for (const Base::Ptr& child: rhs.children_) {
 		children_.push_back (child->clone());
 	}
+}
+
+inline bool TaggedChildList<void>::compare_child (const Base::Ptr& _1, const Base::Ptr& _2)
+{
+	return _1->compare (_2);
 }
 
 } // namespace Node
