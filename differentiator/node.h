@@ -170,6 +170,7 @@ struct AdditionSubtractionTag
 	bool negated;
 
 	AdditionSubtractionTag (bool n) : negated (n) { }
+	bool operator== (const AdditionSubtractionTag& rhs) const { return negated == rhs.negated; }
 };
 
 class AdditionSubtraction : public TaggedChildList<AdditionSubtractionTag>
@@ -193,6 +194,7 @@ struct MultiplicationDivisionTag
 	bool reciprocated;
 
 	MultiplicationDivisionTag (bool r) : reciprocated (r) { }
+	bool operator== (const MultiplicationDivisionTag& rhs) const { return reciprocated == rhs.reciprocated; }
 };
 
 class MultiplicationDivision : public TaggedChildList<MultiplicationDivisionTag>
