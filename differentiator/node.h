@@ -54,6 +54,7 @@ public:
     TaggedChildList() = default;
 
 	std::list<Child>& children() { return children_; }
+	const std::list<Child>& children() const { return children_; }
 
 	void add_child (Base::Ptr&& node, const Tag& tag);
 	void add_child_front (Base::Ptr&& node, const Tag& tag);
@@ -72,6 +73,7 @@ public:
     TaggedChildList() = default;
 
 	std::list<Base::Ptr>& children() { return children_; }
+	const std::list<Base::Ptr>& children() const { return children_; }
 
 	void add_child (Base::Ptr&& node);
 	void add_child_front (Base::Ptr&& node);
