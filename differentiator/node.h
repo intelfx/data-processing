@@ -228,4 +228,21 @@ void TaggedChildList<Tag>::add_children_from (const TaggedChildList<Tag>& rhs)
 	}
 }
 
+inline void TaggedChildList<void>::add_child (Base::Ptr&& node)
+{
+	children_.push_back (std::move (node));
+}
+
+inline void TaggedChildList<void>::add_child_front (Base::Ptr&& node)
+{
+	children_.push_front (std::move (node));
+}
+
+inline void TaggedChildList<void>::add_children_from (const Node::TaggedChildList<void>& rhs)
+{
+	for (const Base::Ptr& child: rhs.children_) {
+		children_.push_back (child->clone());
+	}
+}
+
 } // namespace Node
