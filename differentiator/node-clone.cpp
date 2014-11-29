@@ -1,51 +1,47 @@
 #include "node.h"
 
+namespace {
+
+template <typename T>
+Node::Base::Ptr add_children_and_return (Node::TaggedChildList<T>* created_node, const Node::TaggedChildList<T>* src)
+{
+	created_node->add_children_from (*src);
+	return Node::Base::Ptr (created_node);
+}
+
+} // anonymous namespace
+
 namespace Node
 {
 
-Base::Ptr Base::clone() const
-{
-	Base::Ptr result = clone_bare();
-
-	for (const Base::Ptr& child: children_) {
-		result->add_child (child->clone());
-	}
-
-	return std::move (result);
-}
-
-Base::Ptr Value::clone_bare() const
+Base::Ptr Value::clone() const
 {
 	return Base::Ptr (new Value (value_));
 }
 
-Base::Ptr Variable::clone_bare() const
+Base::Ptr Variable::clone() const
 {
 	return Base::Ptr (new Variable (name_, variable_, is_error_));
 }
 
-Base::Ptr Function::clone_bare() const
+Base::Ptr Function::clone() const
 {
-	return Base::Ptr (new Function (name_));
+	return add_children_and_return (new Function (name_), this);
 }
 
-Base::Ptr Power::clone_bare() const
+Base::Ptr Power::clone() const
 {
-	return Base::Ptr (new Power);
+	return add_children_and_return (new Power, this);
 }
 
-Base::Ptr AdditionSubtraction::clone_bare() const
+Base::Ptr AdditionSubtraction::clone() const
 {
-	AdditionSubtraction::Ptr result (new AdditionSubtraction);
-	result->negation_ = negation_;
-	return std::move (result);
+	return add_children_and_return (new AdditionSubtraction, this);
 }
 
-Base::Ptr MultiplicationDivision::clone_bare() const
+Base::Ptr MultiplicationDivision::clone() const
 {
-	MultiplicationDivision::Ptr result (new MultiplicationDivision);
-	result->reciprocation_ = reciprocation_;
-	return std::move (result);
+	return add_children_and_return (new MultiplicationDivision, this);
 }
 
 } // namespace Node

@@ -40,11 +40,8 @@ boost::any Optimize::visit (Node::AdditionSubtraction& node)
 	/* recurse to children */
 	Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
 
-	auto child = node.children().begin();
-	auto negation = node.negation().begin();
-
-	while (child != node.children().end()) {
-		result->add_child ((*child++)->accept_ptr (*this), *negation++);
+	for (auto& child: node.children()) {
+		result->add_child (child.node->accept_ptr (*this), child.tag);
 	}
 
 	return static_cast<Node::Base*> (result.release());
@@ -53,7 +50,7 @@ boost::any Optimize::visit (Node::AdditionSubtraction& node)
 Node::Base::Ptr Optimize::multiply_nodes (std::vector<Node::Base::Ptr>& vec)
 {
 	if (vec.size() == 1) {
-		return std::move (vec.at (0));
+		return std::move (vec.front());
 	} else {
 		Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);
 		for (Node::Base::Ptr& node: vec) {
@@ -65,16 +62,16 @@ Node::Base::Ptr Optimize::multiply_nodes (std::vector<Node::Base::Ptr>& vec)
 
 boost::any Optimize::visit (Node::MultiplicationDivision& node)
 {
+	/* convert "x * y / z / w" into "(x * y) / (z * w)", i. e.
+	 * group multipliers and divisors into separate mul-div nodes */
+
 	Node::MultiplicationDivision::Ptr result;
 	std::vector<Node::Base::Ptr> multipliers, divisors;
 
-	auto child = node.children().begin();
-	auto reciprocation = node.reciprocation().begin();
+	for (auto& child: node.children()) {
+		Node::Base::Ptr optimized (child.node->accept_ptr (*this));
 
-	while (child != node.children().end()) {
-		Node::Base::Ptr optimized ((*child++)->accept_ptr (*this));
-
-		if (*reciprocation++) {
+		if (child.tag.reciprocated) {
 			divisors.push_back (std::move (optimized));
 		} else {
 			multipliers.push_back (std::move (optimized));
@@ -85,10 +82,13 @@ boost::any Optimize::visit (Node::MultiplicationDivision& node)
 		/* at least one multiplier is present */
 		return static_cast<Node::Base*> (multiply_nodes (multipliers).release());
 	} else {
+		/* divisors are present, create the resulting node */
 		result = Node::MultiplicationDivision::Ptr (new Node::MultiplicationDivision);
+		/* add multipliers, if they exist */
 		if (!multipliers.empty()) {
 			result->add_child (multiply_nodes (multipliers), false);
 		}
+		/* add divisors */
 		result->add_child (multiply_nodes (divisors), true);
 
 		return static_cast<Node::Base*> (result.release());

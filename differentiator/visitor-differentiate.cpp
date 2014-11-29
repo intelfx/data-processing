@@ -34,11 +34,8 @@ boost::any Differentiate::visit (Node::AdditionSubtraction& node)
 {
 	Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
 
-	auto negation = node.negation().begin();
-	auto child = node.children().begin();
-
-	while (child != node.children().end()) {
-		result->add_child ((*child++)->accept_ptr (*this), *negation++);
+	for (auto& child: node.children()) {
+		result->add_child (child.node->accept_ptr (*this), child.tag);
 	}
 
 	return static_cast<Node::Base*> (result.release());
@@ -49,53 +46,27 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 	Node::MultiplicationDivision::Ptr so_far (new Node::MultiplicationDivision);
 	Node::Base::Ptr deriv_so_far;
 
-	auto reciprocation = node.reciprocation().begin();
-	auto child = node.children().begin();
-
-	/*
-	 * Handle first multiplier/divisor specially to simplify the expression.
-	 */
-	if (*reciprocation) {
-		/* f, f' */
-		Node::Base::Ptr term ((*child)->clone()),
-		                deriv ((*child)->accept_ptr (*this));
-
-		/* f^2 */
-		Node::Power::Ptr squared (new Node::Power);
-		squared->add_child (std::move (term));
-		squared->add_child (Node::Base::Ptr (new Node::Value (2)));
-
-		/* -f' */
-		Node::AdditionSubtraction::Ptr minus_deriv (new Node::AdditionSubtraction);
-		minus_deriv->add_child (std::move (deriv), true);
-
-		/* -f'/f^2 */
-		Node::MultiplicationDivision::Ptr current (new Node::MultiplicationDivision);
-		current->add_child (std::move (minus_deriv), false);
-		current->add_child (std::move (squared), true);
-		deriv_so_far = std::move (current);
-	} else {
-		/* just f' */
-		deriv_so_far = (*child)->accept_ptr (*this);
-	}
-	so_far->add_child ((*child++)->clone(), *reciprocation++);
-
-	while (child != node.children().end()) {
+	for (auto& child: node.children()) {
 		/* common: g, g' */
-		Node::Base::Ptr g ((*child)->clone()),
-		                deriv_g ((*child)->accept_ptr (*this));
+		Node::Base::Ptr g (child.node->clone()),
+		                deriv_g (child.node->accept_ptr (*this));
 
-		/* common: f'g */
-		Node::MultiplicationDivision::Ptr deriv_f_g (new Node::MultiplicationDivision);
-		deriv_f_g->add_child (std::move (deriv_so_far), false);
-		deriv_f_g->add_child (g->clone() /* g is needed later if reciprocation == true */, false);
+		/* common: f'g, fg'
+		 * (skipped on the first iteration because f = 1, f' = 0) */
+		Node::MultiplicationDivision::Ptr deriv_f_g, f_deriv_g;
+		if (deriv_so_far) {
+			/* f'g */
+			deriv_f_g = Node::MultiplicationDivision::Ptr (new Node::MultiplicationDivision);
+			deriv_f_g->add_child (std::move (deriv_so_far), false);
+			deriv_f_g->add_child (g->clone() /* g is needed later if reciprocation == true */, false);
 
-		/* common: fg' */
-		Node::MultiplicationDivision::Ptr f_deriv_g (new Node::MultiplicationDivision);
-		f_deriv_g->add_child (so_far->clone() /* f is incremental */, false);
-		f_deriv_g->add_child (std::move (deriv_g), false);
+			/* fg' */
+			f_deriv_g = Node::MultiplicationDivision::Ptr (new Node::MultiplicationDivision);
+			f_deriv_g->add_child (so_far->clone() /* f is incremental */, false);
+			f_deriv_g->add_child (std::move (deriv_g), false);
+		}
 
-		if (*reciprocation) {
+		if (child.tag.reciprocated) {
 			/* g^2 */
 			Node::Power::Ptr g_squared (new Node::Power);
 			g_squared->add_child (std::move (g));
@@ -103,8 +74,13 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 
 			/* f'g - fg' */
 			Node::AdditionSubtraction::Ptr top (new Node::AdditionSubtraction);
-			top->add_child (std::move (deriv_f_g), false);
-			top->add_child (std::move (f_deriv_g), true);
+			if (deriv_f_g) {
+				top->add_child (std::move (deriv_f_g), false);
+				top->add_child (std::move (f_deriv_g), true);
+			} else {
+				/* first iteration, see above */
+				top->add_child (std::move (deriv_g), true);
+			}
 
 			/* (f'g - fg') / g^2 */
 			Node::MultiplicationDivision::Ptr current (new Node::MultiplicationDivision);
@@ -113,12 +89,18 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 			deriv_so_far = std::move (current);
 		} else {
 			/* f'g + fg' */
-			Node::AdditionSubtraction::Ptr current (new Node::AdditionSubtraction);
-			current->add_child (std::move (deriv_f_g), false);
-			current->add_child (std::move (f_deriv_g), false);
-			deriv_so_far = std::move (current);
+			if (deriv_f_g) {
+				Node::AdditionSubtraction::Ptr current (new Node::AdditionSubtraction);
+				current->add_child (std::move (deriv_f_g), false);
+				current->add_child (std::move (f_deriv_g), false);
+				deriv_so_far = std::move (current);
+			} else {
+				/* first iteration, see above */
+				deriv_so_far = std::move (deriv_g);
+			}
 		}
-		so_far->add_child ((*child++)->clone(), *reciprocation++);
+
+		so_far->add_child (child.node->clone(), child.tag);
 	}
 
 	return static_cast<Node::Base*> (deriv_so_far.release());

@@ -6,14 +6,22 @@ namespace Node
 
 Base::~Base() = default;
 
-void Base::add_child (Ptr&& node)
+
+void TaggedChildList<void>::add_child (Base::Ptr&& node)
 {
 	children_.push_back (std::move (node));
 }
 
-void Base::add_child_front (Ptr&& node)
+void TaggedChildList<void>::add_child_front (Base::Ptr&& node)
 {
 	children_.push_front (std::move (node));
+}
+
+void TaggedChildList<void>::add_children_from (const Node::TaggedChildList<void>& rhs)
+{
+	for (const Base::Ptr& child: rhs.children_) {
+		children_.push_back (child->clone());
+	}
 }
 
 Value::Value (data_t value)
@@ -33,28 +41,20 @@ Function::Function (const std::string& name)
 {
 }
 
-void AdditionSubtraction::add_child (Base::Ptr&& node, bool negated)
+Value* MultiplicationDivision::get_constant()
 {
-	Base::add_child (std::move (node));
-	negation_.push_back (negated);
-}
+	Value* constant = nullptr;
 
-void AdditionSubtraction::add_child_front (Base::Ptr&& node, bool negated)
-{
-	Base::add_child_front (std::move (node));
-	negation_.push_front (negated);
-}
+	if (!children_.empty()) {
+		constant = dynamic_cast<Value*> (children_.front().node.get());
+	}
 
-void MultiplicationDivision::add_child (Base::Ptr&& node, bool reciprocated)
-{
-	Base::add_child (std::move (node));
-	reciprocation_.push_back (reciprocated);
-}
+	if (!constant) {
+		constant = new Value (1);
+		add_child_front (Base::Ptr (constant), false);
+	}
 
-void MultiplicationDivision::add_child_front (Base::Ptr&& node, bool reciprocated)
-{
-	Base::add_child_front (std::move (node));
-	reciprocation_.push_front (reciprocated);
+	return constant;
 }
 
 IMPLEMENT_ACCEPTOR (Value);

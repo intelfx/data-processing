@@ -26,24 +26,59 @@ public:
 	Base() = default;
 	virtual ~Base();
 
-	void add_child (Ptr&& node);
-	void add_child_front (Ptr&& node);
-
-	Ptr clone() const;
-	std::list<Ptr>& children() { return children_; }
-
 	virtual int priority() const = 0;
 	virtual void Dump (std::ostream& str) = 0;
 
 	DECLARE_ACCEPTOR = 0;
 
+	virtual Ptr clone() const = 0;
+
 	Node::Base::Ptr accept_ptr (Visitor::Base& visitor) { return Node::Base::Ptr (boost::any_cast<Node::Base*> (accept (visitor))); }
 	data_t accept_value (Visitor::Base& visitor) { return boost::any_cast<data_t> (accept (visitor)); }
+};
+
+template <typename Tag>
+class TaggedChildList : public Base
+{
+	struct Child {
+		Base::Ptr node;
+		Tag tag;
+
+		Child (const Child&) = delete;
+		Child (Child&&) = default;
+	};
+
+public:
+	typedef std::unique_ptr<TaggedChildList<Tag>> Ptr;
+
+    TaggedChildList() = default;
+
+	std::list<Child>& children() { return children_; }
+
+	void add_child (Base::Ptr&& node, const Tag& tag);
+	void add_child_front (Base::Ptr&& node, const Tag& tag);
+	void add_children_from (const TaggedChildList<Tag>& rhs);
 
 protected:
-	virtual Ptr clone_bare() const = 0;
+	std::list<Child> children_;
+};
 
-	std::list<Ptr> children_;
+template <>
+class TaggedChildList<void> : public Base
+{
+public:
+	typedef std::unique_ptr<TaggedChildList<void>> Ptr;
+
+    TaggedChildList() = default;
+
+	std::list<Base::Ptr>& children() { return children_; }
+
+	void add_child (Base::Ptr&& node);
+	void add_child_front (Base::Ptr&& node);
+	void add_children_from (const TaggedChildList<void>& rhs);
+
+protected:
+	std::list<Base::Ptr> children_;
 };
 
 class Value : public Base
@@ -56,13 +91,13 @@ public:
 	data_t value() const { return value_; }
 	void set_value (data_t value) { value_ = value; }
 
+
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
+    virtual Base::Ptr clone() const;
 
 private:
 	data_t value_;
@@ -87,8 +122,7 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
+    virtual Base::Ptr clone() const;
 
 private:
 	const std::string& name_;
@@ -96,7 +130,7 @@ private:
 	bool is_error_;
 };
 
-class Function : public Base
+class Function : public TaggedChildList<void>
 {
 public:
 	typedef std::unique_ptr<Function> Ptr;
@@ -110,14 +144,13 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
+    virtual Base::Ptr clone() const;
 
 private:
 	std::string name_;
 };
 
-class Power : public Base
+class Power : public TaggedChildList<void>
 {
 public:
 	typedef std::unique_ptr<Power> Ptr;
@@ -127,52 +160,72 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
+    virtual Base::Ptr clone() const;
 };
 
-class AdditionSubtraction : public Base
+struct AdditionSubtractionTag
+{
+	bool negated;
+
+	AdditionSubtractionTag (bool n) : negated (n) { }
+};
+
+class AdditionSubtraction : public TaggedChildList<AdditionSubtractionTag>
 {
 public:
 	typedef std::unique_ptr<AdditionSubtraction> Ptr;
-
-	void add_child (Base::Ptr&& node, bool negated);
-	void add_child_front (Base::Ptr&& node, bool negated);
-
-	std::list<bool>& negation() { return negation_; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
+    virtual Base::Ptr clone() const;
 
 private:
 	std::list<bool> negation_;
 };
 
-class MultiplicationDivision : public Base
+struct MultiplicationDivisionTag
+{
+	bool reciprocated;
+
+	MultiplicationDivisionTag (bool r) : reciprocated (r) { }
+};
+
+class MultiplicationDivision : public TaggedChildList<MultiplicationDivisionTag>
 {
 public:
 	typedef std::unique_ptr<MultiplicationDivision> Ptr;
 
-	void add_child (Base::Ptr&& node, bool reciprocated);
-	void add_child_front (Base::Ptr&& node, bool reciprocated);
-
-	std::list<bool>& reciprocation() { return reciprocation_; }
-
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str);
 
+	Value* get_constant();
+
 	DECLARE_ACCEPTOR;
 
-protected:
-    virtual Base::Ptr clone_bare() const;
-
-private:
-	std::list<bool> reciprocation_;
+    virtual Base::Ptr clone() const;
 };
+
+template <typename Tag>
+void TaggedChildList<Tag>::add_child (Base::Ptr&& node, const Tag& tag)
+{
+	children_.push_back (Child { std::move (node), tag });
+}
+
+template <typename Tag>
+void TaggedChildList<Tag>::add_child_front (Base::Ptr&& node, const Tag& tag)
+{
+	children_.push_front (Child { std::move (node), tag });
+}
+
+template <typename Tag>
+void TaggedChildList<Tag>::add_children_from (const TaggedChildList<Tag>& rhs)
+{
+	for (const Child& child: rhs.children_) {
+		children_.push_back (Child { child.node->clone(), child.tag });
+	}
+}
 
 } // namespace Node

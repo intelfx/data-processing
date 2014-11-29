@@ -76,21 +76,17 @@ boost::any Print::visit (Node::Power& node)
 
 boost::any Print::visit (Node::AdditionSubtraction& node)
 {
-	auto negation = node.negation().begin();
-	auto child = node.children().begin();
+	bool first = true;
 
-	if (*negation++) {
-		stream_ << "- ";
-	}
-	parenthesized_visit (node, *child++);
-
-	while (child != node.children().end()) {
-		if (*negation++) {
+	for (auto& child: node.children()) {
+		if (child.tag.negated) {
 			stream_ << " - ";
-		} else {
+		} else if (!first) {
 			stream_ << " + ";
 		}
-		parenthesized_visit (node, *child++);
+		parenthesized_visit (node, child.node);
+
+		first = false;
 	}
 
 	return boost::any();
@@ -98,21 +94,23 @@ boost::any Print::visit (Node::AdditionSubtraction& node)
 
 boost::any Print::visit (Node::MultiplicationDivision& node)
 {
-	auto reciprocation = node.reciprocation().begin();
-	auto child = node.children().begin();
+	bool first = true;
 
-	if (*reciprocation++) {
-		stream_ << "1 / ";
-	}
-	parenthesized_visit (node, *child++);
-
-	while (child != node.children().end()) {
-		if (*reciprocation++) {
-			stream_ << " / ";
+	for (auto& child: node.children()) {
+		if (first) {
+			if (child.tag.reciprocated) {
+				stream_ << " 1 / ";
+			}
 		} else {
-			stream_ << " * ";
+			if (child.tag.reciprocated) {
+				stream_ << " / ";
+			} else if (!first) {
+				stream_ << " * ";
+			}
 		}
-		parenthesized_visit (node, *child++);
+		parenthesized_visit (node, child.node);
+
+		first = false;
 	}
 
 	return boost::any();

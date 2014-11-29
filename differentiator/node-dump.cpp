@@ -47,11 +47,9 @@ void AdditionSubtraction::Dump (std::ostream& str)
 {
 	str << "(";
 
-	auto it = negation_.begin();
-	for (Base::Ptr& child: children_) {
-		str << " " << (*it ? "-" : "+") << " ";
-		child->Dump (str);
-		++it;
+	for (auto& child: children_) {
+		str << " " << (child.tag.negated ? "-" : "+") << " ";
+		child.node->Dump (str);
 	}
 
 	str << ")";
@@ -61,11 +59,9 @@ void MultiplicationDivision::Dump (std::ostream& str)
 {
 	str << "(";
 
-	auto it = reciprocation_.begin();
-	for (Base::Ptr& child: children_) {
-		str << " " << (*it ? "/" : "*") << " ";
-		child->Dump (str);
-		++it;
+	for (auto& child: children_) {
+		str << " " << (child.tag.reciprocated ? "/" : "*") << " ";
+		child.node->Dump (str);
 	}
 
 	str << ")";

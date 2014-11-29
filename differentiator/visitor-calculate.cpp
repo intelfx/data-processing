@@ -41,14 +41,11 @@ boost::any Calculate::visit (Node::AdditionSubtraction& node)
 {
 	data_t result = 0;
 
-	auto negation = node.negation().begin();
-	auto child = node.children().begin();
-
-	while (child != node.children().end()) {
-		if (*negation++) {
-			result -= (*child++)->accept_value (*this);
+	for (auto& child: node.children()) {
+		if (child.tag.negated) {
+			result -= child.node->accept_value (*this);
 		} else {
-			result += (*child++)->accept_value (*this);
+			result += child.node->accept_value (*this);
 		}
 	}
 
@@ -59,14 +56,11 @@ boost::any Calculate::visit (Node::MultiplicationDivision& node)
 {
 	data_t result = 1;
 
-	auto reciprocation = node.reciprocation().begin();
-	auto child = node.children().begin();
-
-	while (child != node.children().end()) {
-		if (*reciprocation++) {
-			result /= (*child++)->accept_value (*this);
+	for (auto& child: node.children()) {
+		if (child.tag.reciprocated) {
+			result /= child.node->accept_value (*this);
 		} else {
-			result *= (*child++)->accept_value (*this);
+			result *= child.node->accept_value (*this);
 		}
 	}
 

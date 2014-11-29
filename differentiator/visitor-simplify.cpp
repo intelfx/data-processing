@@ -57,11 +57,12 @@ boost::any Simplify::visit (Node::Power& node)
 	} else if (exponent_value && fp_cmp (exponent_value->value(), 1)) {
 		return static_cast<Node::Base*> (base.release());
 	} else if (base_muldiv) {
-		for (Node::Base::Ptr& child: base_muldiv->children()) {
+		for (auto& child: base_muldiv->children()) {
+			/* replace each child with its power */
 			Node::Power::Ptr child_pwr (new Node::Power);
-			child_pwr->add_child (std::move (child));
+			child_pwr->add_child (std::move (child.node));
 			child_pwr->add_child (exponent->clone());
-			child = std::move (child_pwr);
+			child.node = std::move (child_pwr);
 		}
 		return base->accept_ptr (*this).release();
 	} else if (base_power) {
@@ -88,16 +89,14 @@ boost::any Simplify::visit (Node::Power& node)
 
 void Simplify::simplify_nested_nodes (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
 {
-	auto child = node.children().begin();
-	auto negation = node.negation().begin();
-
-	while (child != node.children().end()) {
-		Node::Base::Ptr simplified ((*child++)->accept_ptr (*this));
+	for (auto& child: node.children()) {
+		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
+		bool negation = child.tag.negated ^ node_negation;
 
 		if (simplified_value) {
-			if (*negation++ ^ node_negation) {
+			if (negation) {
 				result_value -= simplified_value->value();
 			} else {
 				result_value += simplified_value->value();
@@ -108,9 +107,9 @@ void Simplify::simplify_nested_nodes (data_t& result_value, Node::AdditionSubtra
 			}
 
 			if (simplified_addsub) {
-				simplify_nested_nodes (result_value, result, *simplified_addsub, *negation++ ^ node_negation);
+				simplify_nested_nodes (result_value, result, *simplified_addsub, negation);
 			} else {
-				result->add_child (std::move (simplified), *negation++ ^ node_negation);
+				result->add_child (std::move (simplified), negation);
 			}
 		}
 	}
@@ -124,53 +123,49 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 	simplify_nested_nodes (result_value, result, node, false);
 
 	if (result) {
+		/* we have at least one non-constant node.
+		 * add the constant (as the first child) if needed */
 		if (!fp_cmp (result_value, 0)) {
-			result->add_child (Node::Base::Ptr (new Node::Value (fabsl (result_value))), result_value < 0);
+			result->add_child (Node::Base::Ptr (new Node::Value (result_value)), false);
 		}
 
+		/* if we still have only one child, try to get rid of our node entirely */
 		if (result->children().size() == 1) {
-			Node::Base::Ptr& child = result->children().front();
+			Node::Base::Ptr& child = result->children().front().node;
 
-			if (!result->negation().front()) {
-				return static_cast<Node::Base*> (child.release());
-			} else {
+			if (result->children().front().tag.negated) {
+				/* our only child is negated, check if we can push the sign into it */
 				Node::MultiplicationDivision* child_muldiv = dynamic_cast<Node::MultiplicationDivision*> (child.get());
 				if (child_muldiv) {
-					// push sign into the mul-div node
-					// the constant, if exists, is the first child of a mul-div
-					Node::Base::Ptr& child_child = child->children().front();
-					Node::Value* child_child_value = dynamic_cast<Node::Value*> (child_child.get());
-					if (child_child_value) {
-						// multiply the constant by -1, if it exists
-						child_child_value->set_value (child_child_value->value() * -1);
-					} else {
-						// insert the constant, if it doesn't
-						child_muldiv->add_child_front (Node::Base::Ptr (new Node::Value (-1)), false);
-					}
+					/* mul-div nodes have a constant which can be multiplied by -1 */
+					Node::Value* child_muldiv_constant = child_muldiv->get_constant();
+					child_muldiv_constant->set_value (child_muldiv_constant->value() * -1);
 
 					return static_cast<Node::Base*> (child.release());
 				}
+			} else {
+				/* our only child is non-negated, just return it as-is (+x == x) */
+				return static_cast<Node::Base*> (child.release());
 			}
 		}
 
 		return static_cast<Node::Base*> (result.release());
 	} else {
+		/* we do not have any nodes besides the constant, return it directly */
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
 }
 
 void Simplify::simplify_nested_nodes (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
 {
-	auto child = node.children().begin();
-	auto reciprocation = node.reciprocation().begin();
-
-	while (child != node.children().end()) {
-		Node::Base::Ptr simplified ((*child++)->accept_ptr (*this));
+	for (auto& child: node.children()) {
+		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
+		bool reciprocation = child.tag.reciprocated ^ node_reciprocation;
 
 		if (simplified_value) {
-			if (*reciprocation++ ^ node_reciprocation) {
+			if (reciprocation) {
 				result_value /= simplified_value->value();
 			} else {
 				result_value *= simplified_value->value();
@@ -181,9 +176,9 @@ void Simplify::simplify_nested_nodes (data_t& result_value, Node::Multiplication
 			}
 
 			if (simplified_muldiv) {
-				simplify_nested_nodes (result_value, result, *simplified_muldiv, *reciprocation++ ^ node_reciprocation);
+				simplify_nested_nodes (result_value, result, *simplified_muldiv, reciprocation);
 			} else {
-				result->add_child (std::move (simplified), *reciprocation++ ^ node_reciprocation);
+				result->add_child (std::move (simplified), reciprocation);
 			}
 		}
 	}
@@ -197,6 +192,8 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 	simplify_nested_nodes (result_value, result, node, false);
 
 	if (result && !fp_cmp (result_value, 0)) {
+		/* we have at least one non-constant node and we are not multiplied by zero.
+		 * add the constant (as the first child) if needed */
 		if (!fp_cmp (result_value, 1)) {
 			if (fabsl (result_value) < 1) {
 				result->add_child_front (Node::Base::Ptr (new Node::Value (1 / result_value)), true);
@@ -205,14 +202,20 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 			}
 		}
 
-		if ((result->children().size() == 1) && !result->reciprocation().front()) {
-			return static_cast<Node::Base*> (result->children().front().release());
-		} else {
-			return static_cast<Node::Base*> (result.release());
+		/* if we still have only one child, try to get rid of our node entirely */
+		if (result->children().size() == 1) {
+			if (!result->children().front().tag.reciprocated) {
+				/* our only child is non-reciprocated, just return it as-is */
+				return static_cast<Node::Base*> (result->children().front().node.release());
+			}
 		}
+
+		return static_cast<Node::Base*> (result.release());
 	} else {
+		/* we do not have any nodes besides the constant, return it directly */
 		return static_cast<Node::Base*> (new Node::Value (result_value));
 	}
+
 }
 
 } // namespace Visitor
