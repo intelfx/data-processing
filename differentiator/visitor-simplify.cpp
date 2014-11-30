@@ -186,7 +186,7 @@ void Simplify::simplify_nested_nodes (data_t& result_value, Node::AdditionSubtra
 		bool negation = child.tag.negated ^ node_negation;
 		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
 
-		fold_with_children (result, simplified, node_negation);
+		fold_with_children (result, simplified, negation);
 
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
