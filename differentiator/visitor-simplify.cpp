@@ -138,9 +138,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 				Node::MultiplicationDivision* child_muldiv = dynamic_cast<Node::MultiplicationDivision*> (child.get());
 				if (child_muldiv) {
 					/* mul-div nodes have a constant which can be multiplied by -1 */
-					Node::Value* child_muldiv_constant = child_muldiv->get_constant();
-					child_muldiv_constant->set_value (child_muldiv_constant->value() * -1);
-
+					child_muldiv->insert_constant (-1);
 					return static_cast<Node::Base*> (child.release());
 				}
 			} else {
@@ -194,13 +192,7 @@ boost::any Simplify::visit (Node::MultiplicationDivision& node)
 	if (result && !fp_cmp (result_value, 0)) {
 		/* we have at least one non-constant node and we are not multiplied by zero.
 		 * add the constant (as the first child) if needed */
-		if (!fp_cmp (result_value, 1)) {
-			if (fabsl (result_value) < 1) {
-				result->add_child_front (Node::Base::Ptr (new Node::Value (1 / result_value)), true);
-			} else {
-				result->add_child_front (Node::Base::Ptr (new Node::Value (result_value)), false);
-			}
-		}
+		result->insert_constant (result_value);
 
 		/* if we still have only one child, try to get rid of our node entirely */
 		if (result->children().size() == 1) {
