@@ -250,13 +250,101 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 	}
 }
 
+DisassembledNode disassemble_power (const Node::Base::Ptr& node, bool reciprocate)
+{
+	DisassembledNode result { 1, node->clone() };
+
+	Node::Power* result_power = dynamic_cast<Node::Power*> (result.subtree.get());
+	if (result_power) {
+		auto child = result_power->children().begin();
+		Node::Base::Ptr& result_base = *child++;
+		Node::Value* result_exponent_value = dynamic_cast<Node::Value*> (child->get());
+
+		if (result_exponent_value) {
+			result.constant = result_exponent_value->value();
+			result.subtree = std::move (result_base);
+		}
+	}
+
+	if (reciprocate) {
+		result.constant = -result.constant;
+	}
+
+	return std::move (result);
+}
+
+Node::Base::Ptr assemble_power (DisassembledNode&& node_data, Simplify& simplifier)
+{
+	if (fp_cmp (node_data.constant, 0)) {
+		return Node::Base::Ptr (new Node::Value (1));
+	} else if (fp_cmp (node_data.constant, 1)) {
+		return std::move (node_data.subtree);
+	} else {
+		Node::Power::Ptr new_power (new Node::Power);
+		new_power->add_child (std::move (node_data.subtree));
+		new_power->add_child (Node::Base::Ptr (new Node::Value (node_data.constant)));
+		return new_power->accept_ptr (simplifier);
+	}
+}
+
+void Simplify::fold_with_children (Node::MultiplicationDivision::Ptr& result, Node::Base::Ptr& node, bool& node_reciprocation)
+{
+	/* Folding semantics:
+	 * Merge "X^a" specified by pair (node; node_reciprocation) into any "X^b" specified by one of result's children,
+	 * producing "X^(a+b)". The result must be simplified and written into (node; node_reciprocation).
+	 * The child node that took part in the folding must be removed. */
+
+	/* Do not fold constants, this is meaningless. */
+	if (dynamic_cast<Node::Value*> (node.get())) {
+		return;
+	}
+
+	/* Verify that we have any nodes to attempt folding with. */
+	if (!result) {
+		return;
+	}
+
+	/* disassemble (node; node_negation) into a constant and a subtree. */
+	DisassembledNode node_data = disassemble_power (node, node_reciprocation);
+
+	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
+		DisassembledNode child_data = disassemble_power (child->node, child->tag.reciprocated);
+
+		if (child_data.subtree->compare (node_data.subtree)) {
+			/* Subtrees match.
+			 * Do the folding (sum up constants). */
+			node_data.constant += child_data.constant;
+
+			/* Avoid "*(x^-1)"
+			 * FIXME maybe this is something to do unconditionally in simplify_nested_nodes() */
+			if (node_data.constant < 0) {
+				node_data.constant = -node_data.constant;
+				node_reciprocation = true;
+			} else {
+				node_reciprocation = false;
+			}
+
+			/* Build the node and replace source node with the folded version. */
+			node = assemble_power (std::move (node_data), *this);
+
+			/* Erase the second node participated in folding.
+			 * Iterator becomes invalid - return immediately. */
+			result->children().erase (child);
+			return;
+		}
+	}
+}
+
 void Simplify::simplify_nested_nodes (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
 {
 	for (auto& child: node.children()) {
 		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
+		bool reciprocation = child.tag.reciprocated ^ node_reciprocation;
+
+		fold_with_children (result, simplified, reciprocation);
+
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
-		bool reciprocation = child.tag.reciprocated ^ node_reciprocation;
 
 		if (simplified_value) {
 			if (reciprocation) {
