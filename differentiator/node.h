@@ -27,7 +27,7 @@ public:
 	virtual ~Base();
 
 	virtual int priority() const = 0;
-	virtual void Dump (std::ostream& str) = 0;
+	virtual void Dump (std::ostream& str) const = 0;
 
 	DECLARE_ACCEPTOR = 0;
 
@@ -99,7 +99,7 @@ public:
 	void set_value (data_t value) { value_ = value; }
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
 
@@ -125,7 +125,7 @@ public:
 	bool is_target_variable (const std::string& desired) const { return !is_error_ && (name_ == desired); }
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
 
@@ -148,7 +148,7 @@ public:
 	const std::string& name() const { return name_; }
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
 
@@ -165,7 +165,7 @@ public:
 	typedef std::unique_ptr<Power> Ptr;
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
 
@@ -187,7 +187,7 @@ public:
 	typedef std::unique_ptr<AdditionSubtraction> Ptr;
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
 
@@ -212,7 +212,7 @@ public:
 	typedef std::unique_ptr<MultiplicationDivision> Ptr;
 
 	virtual int priority() const;
-	virtual void Dump (std::ostream& str);
+	virtual void Dump (std::ostream& str) const;
 
 	std::pair<Value*, MultiplicationDivisionTag*> get_constant();
 	std::pair<Value*, MultiplicationDivisionTag*> get_or_create_constant();

@@ -3,12 +3,12 @@
 namespace Node
 {
 
-void Value::Dump (std::ostream& str)
+void Value::Dump (std::ostream& str) const
 {
 	str << value_;
 }
 
-void Variable::Dump (std::ostream& str)
+void Variable::Dump (std::ostream& str) const
 {
 	str << name_ << " [" << variable_.value;
 
@@ -19,11 +19,11 @@ void Variable::Dump (std::ostream& str)
 	str << "]";
 }
 
-void Function::Dump (std::ostream& str)
+void Function::Dump (std::ostream& str) const
 {
 	str << "( " << name_;
 
-	for (Base::Ptr& child: children_) {
+	for (const Base::Ptr& child: children_) {
 		str << " ";
 		child->Dump (str);
 	}
@@ -31,11 +31,11 @@ void Function::Dump (std::ostream& str)
 	str << ")";
 }
 
-void Power::Dump (std::ostream& str)
+void Power::Dump (std::ostream& str) const
 {
 	str << "( **";
 
-	for (Base::Ptr& child: children_) {
+	for (const Base::Ptr& child: children_) {
 		str << " ";
 		child->Dump (str);
 	}
@@ -43,7 +43,7 @@ void Power::Dump (std::ostream& str)
 	str << ")";
 }
 
-void AdditionSubtraction::Dump (std::ostream& str)
+void AdditionSubtraction::Dump (std::ostream& str) const
 {
 	str << "(";
 
@@ -55,7 +55,7 @@ void AdditionSubtraction::Dump (std::ostream& str)
 	str << ")";
 }
 
-void MultiplicationDivision::Dump (std::ostream& str)
+void MultiplicationDivision::Dump (std::ostream& str) const
 {
 	str << "(";
 
