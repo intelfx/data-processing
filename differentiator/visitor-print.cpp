@@ -25,6 +25,19 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 	return std::move (ret);
 }
 
+bool Print::need_substitution (const std::string& name) const
+{
+	static const char* known_names[] = { "pi" };
+
+	for (size_t i = 0; i < (sizeof (known_names) / sizeof (*known_names)); ++i) {
+		if (name == known_names[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 boost::any Print::visit (Node::Value& node)
 {
 	stream_ << node.value();
@@ -34,7 +47,7 @@ boost::any Print::visit (Node::Value& node)
 
 boost::any Print::visit (Node::Variable& node)
 {
-	if (substitute_) {
+	if (substitute_ && need_substitution (node.name())) {
 		stream_ << node.value();
 	} else {
 		stream_ << node.pretty_name();

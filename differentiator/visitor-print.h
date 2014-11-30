@@ -11,6 +11,8 @@ class Print : public Base
 
 	boost::any parenthesized_visit (Node::Base& node, Node::Base::Ptr& child);
 
+	bool need_substitution (const std::string& name) const;
+
 public:
 	Print (std::ostream& stream, bool substitute);
 
