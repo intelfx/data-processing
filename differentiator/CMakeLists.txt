@@ -1,7 +1,7 @@
 add_library (calculator
              lexer.cpp parser.cpp
              node.cpp node-dump.cpp node-priority.cpp node-compare.cpp
-             visitor-print.cpp visitor-calculate.cpp node-clone.cpp visitor-simplify.cpp visitor-optimize.cpp visitor-differentiate.cpp
+             visitor-print.cpp visitor-calculate.cpp node-clone.cpp visitor-simplify.cpp visitor-optimize.cpp visitor-differentiate.cpp visitor-latex.cpp
              util-tree.cpp)
 
 add_executable (differentiator
