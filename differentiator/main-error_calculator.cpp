@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "visitor-print.h"
 #include "visitor-calculate.h"
+#include "visitor-latex.h"
 
 #include <iomanip>
 #include <sstream>
@@ -17,8 +18,10 @@ int main (int argc, char** argv)
 	}
 
 	std::string variable_name;
+	std::string latex_file;
 	bool verbose = !getenv ("TERSE");
 	bool machine_output = false;
+	bool latex_output = false;
 
 	if (char* output_variable = getenv ("OUTPUT")) {
 		if (output_variable[0] != '\0') {
@@ -29,6 +32,15 @@ int main (int argc, char** argv)
 		}
 	} else if (getenv ("OUTPUT_BARE")) {
 		machine_output = true;
+	}
+
+	if (char* file = getenv ("LATEX_FILE")) {
+		if (file[0] != '\0') {
+			latex_file = std::string (file);
+			latex_output = true;
+		} else {
+			std::cerr << "WARNING: LATEX_FILE= variable is set but empty; set it to desired file name" << std::endl;
+		}
 	}
 
 	insert_constants();
@@ -52,7 +64,8 @@ int main (int argc, char** argv)
 		}
 	}
 
-	Node::Base::Ptr tree = Parser (expression, variables).parse();
+	Node::Base::Ptr tree = Parser (expression, variables).parse(),
+	                simplified = simplify_tree (tree);
 	Visitor::Print print_symbolic (std::cerr, false),
 	               print_substitute (std::cerr, true);
 	Visitor::Calculate calculate;
@@ -62,10 +75,9 @@ int main (int argc, char** argv)
 				<< "Value:" << std::endl;
 
 		std::cerr << "F = "; tree->accept (print_symbolic); std::cerr << " =" << std::endl;
-		tree = simplify_tree (tree);
-		std::cerr << "  = "; tree->accept (print_symbolic); std::cerr << " =" << std::endl;
-		std::cerr << "  = "; tree->accept (print_substitute); std::cerr << " =" << std::endl;
-		std::cerr << "  = " << tree->accept_value (calculate) << std::endl;
+		std::cerr << "  = "; simplified->accept (print_symbolic); std::cerr << " =" << std::endl;
+		std::cerr << "  = "; simplified->accept (print_substitute); std::cerr << " =" << std::endl;
+		std::cerr << "  = " << simplified->accept_value (calculate) << std::endl;
 
 		std::cerr << std::endl
 		          << "Partial derivatives:" << std::endl;
@@ -75,7 +87,7 @@ int main (int argc, char** argv)
 
 	for (auto it = variables.begin(); it != variables.end(); ++it) {
 		Node::Variable::Ptr error (new Node::Variable (it->first, it->second, true));
-		Node::Base::Ptr derivative = differentiate (tree, it->first);
+		Node::Base::Ptr derivative = differentiate (simplified, it->first);
 
 		if (fp_cmp (error->value(), 0) ||
 		    fp_cmp (derivative->accept_value (calculate), 0)) {
@@ -117,7 +129,7 @@ int main (int argc, char** argv)
 		std::cerr << "   = " << error->accept_value (calculate) << std::endl;
 	} else {
 		std::cerr << " F(...) = " << expression
-		          << " F = " << tree->accept_value (calculate)
+		          << " F = " << simplified->accept_value (calculate)
 		          << " ΔF = " << error->accept_value (calculate) << std::endl;
 	}
 
@@ -125,6 +137,18 @@ int main (int argc, char** argv)
 		if (!variable_name.empty()) {
 			std::cout << variable_name << " ";
 		}
-		std::cout << tree->accept_value (calculate) << " " << error->accept_value (calculate) << std::endl;
+		std::cout << simplified->accept_value (calculate) << " " << error->accept_value (calculate) << std::endl;
+	}
+
+	if (latex_output) {
+		if (variable_name.empty()) {
+			variable_name = "F";
+		}
+
+		Visitor::LaTeX::Document document (latex_file.c_str());
+
+		document.print (variable_name, tree, true, true);
+		document.print (variable_name, tree, simplified);
+		document.print (std::string ("\\sigma ") + variable_name, error, true, true);
 	}
 }
