@@ -36,6 +36,8 @@ public:
 
 	Node::Base::Ptr accept_ptr (Visitor::Base& visitor) { return Node::Base::Ptr (boost::any_cast<Node::Base*> (accept (visitor))); }
 	data_t accept_value (Visitor::Base& visitor) { return boost::any_cast<data_t> (accept (visitor)); }
+
+	friend std::ostream& operator<< (std::ostream& out, const Base& node);
 };
 
 template <typename Tag>

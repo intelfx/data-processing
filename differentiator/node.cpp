@@ -4,6 +4,12 @@
 namespace Node
 {
 
+std::ostream& operator<< (std::ostream& out, const Node::Base& node)
+{
+	node.Dump (out);
+	return out;
+}
+
 Base::~Base() = default;
 
 Value::Value (data_t value)
