@@ -6,6 +6,7 @@ namespace Visitor {
 
 class Print : public Base
 {
+protected:
 	std::ostream& stream_;
 	bool substitute_;
 
