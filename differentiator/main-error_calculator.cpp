@@ -62,6 +62,8 @@ int main (int argc, char** argv)
 				<< "Value:" << std::endl;
 
 		std::cerr << "F = "; tree->accept (print_symbolic); std::cerr << " =" << std::endl;
+		tree = simplify_tree (tree);
+		std::cerr << "  = "; tree->accept (print_symbolic); std::cerr << " =" << std::endl;
 		std::cerr << "  = "; tree->accept (print_substitute); std::cerr << " =" << std::endl;
 		std::cerr << "  = " << tree->accept_value (calculate) << std::endl;
 

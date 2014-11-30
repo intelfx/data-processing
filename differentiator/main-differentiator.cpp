@@ -38,7 +38,9 @@ int main (int argc, char** argv)
 	std::cout << std::endl
 	          << "Value:" << std::endl;
 
-	std::cout << "F = "; tree->accept (print_symbolic); std::cout << std::endl;
+	std::cout << "F = "; tree->accept (print_symbolic); std::cout << " = " << std::endl;
+	tree = simplify_tree (tree, differentiation_variable);
+	std::cout << "  = "; tree->accept (print_symbolic); std::cout << std::endl;
 
 	std::cout << std::endl
 	          << "Partial derivatives:" << std::endl;
