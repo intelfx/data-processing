@@ -87,13 +87,109 @@ boost::any Simplify::visit (Node::Power& node)
 	}
 }
 
+struct DisassembledNode
+{
+	data_t constant;
+	Node::Base::Ptr subtree;
+};
+
+DisassembledNode disassemble_muldiv (const Node::Base::Ptr& node, bool negate)
+{
+	DisassembledNode result { 1, node->clone() };
+
+	Node::MultiplicationDivision* result_muldiv = dynamic_cast<Node::MultiplicationDivision*> (result.subtree.get());
+	if (result_muldiv) {
+		result.constant = result_muldiv->get_constant_value_and_release();
+		if (result_muldiv->children().size() == 1) {
+			result.subtree = std::move (result_muldiv->children().front().node);
+		}
+	}
+
+	if (negate) {
+		result.constant = -result.constant;
+	}
+
+	return std::move (result);
+}
+
+Node::Base::Ptr assemble_muldiv (DisassembledNode&& node_data)
+{
+	if (fp_cmp (node_data.constant, 0)) {
+		return Node::Base::Ptr (new Node::Value (0));
+	} else if (fp_cmp (node_data.constant, 1)) {
+		return std::move (node_data.subtree);
+	} else {
+		Node::MultiplicationDivision* node_muldiv = dynamic_cast<Node::MultiplicationDivision*> (node_data.subtree.get());
+		if (node_muldiv) {
+			node_muldiv->insert_constant (node_data.constant);
+			return std::move (node_data.subtree);
+		} else {
+			Node::MultiplicationDivision::Ptr new_muldiv (new Node::MultiplicationDivision);
+			new_muldiv->insert_constant (node_data.constant);
+			new_muldiv->add_child (std::move (node_data.subtree), false);
+			return std::move (new_muldiv);
+		}
+	}
+}
+
+void Simplify::fold_with_children (Node::AdditionSubtraction::Ptr& result, Node::Base::Ptr& node, bool& node_negation)
+{
+	/* Folding semantics:
+	 * Merge "a * X" specified by pair (node; node_negation) into any "b * X" specified by one of result's children,
+	 * producing "(a + b) * X". The result must be simplified and written into (node; node_negation).
+	 * The child node that took part in the folding must be removed. */
+
+	/* Do not fold constants, this is meaningless. */
+	if (dynamic_cast<Node::Value*> (node.get())) {
+		return;
+	}
+
+	/* Verify that we have any nodes to attempt folding with. */
+	if (!result) {
+		return;
+	}
+
+	/* disassemble (node; node_negation) into a constant and a subtree. */
+	DisassembledNode node_data = disassemble_muldiv (node, node_negation);
+
+	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
+		DisassembledNode child_data = disassemble_muldiv (child->node, child->tag.negated);
+
+		if (child_data.subtree->compare (node_data.subtree)) {
+			/* Subtrees match.
+			 * Do the folding (sum up constants). */
+			node_data.constant += child_data.constant;
+
+			/* Avoid "+(-x)"
+			 * FIXME maybe this is something to do unconditionally in simplify_nested_nodes() */
+			if (node_data.constant < 0) {
+				node_data.constant = -node_data.constant;
+				node_negation = true;
+			} else {
+				node_negation = false;
+			}
+
+			/* Build the node and replace source node with the folded version. */
+			node = assemble_muldiv (std::move (node_data));
+
+			/* Erase the second node participated in folding.
+			 * Iterator becomes invalid - return immediately. */
+			result->children().erase (child);
+			return;
+		}
+	}
+}
+
 void Simplify::simplify_nested_nodes (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
 {
 	for (auto& child: node.children()) {
+		bool negation = child.tag.negated ^ node_negation;
 		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
+
+		fold_with_children (result, simplified, node_negation);
+
 		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
 		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
-		bool negation = child.tag.negated ^ node_negation;
 
 		if (simplified_value) {
 			if (negation) {

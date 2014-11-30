@@ -11,6 +11,8 @@ class Simplify : public Base
 	void simplify_nested_nodes (data_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation);
 	void simplify_nested_nodes (data_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation);
 
+	void fold_with_children (Node::AdditionSubtraction::Ptr& result, Node::Base::Ptr& node, bool& node_negation);
+
 public:
 	Simplify (const std::string& variable);
 	Simplify();
