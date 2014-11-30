@@ -151,6 +151,7 @@ void Simplify::fold_with_children (Node::AdditionSubtraction::Ptr& result, Node:
 
 	/* disassemble (node; node_negation) into a constant and a subtree. */
 	DisassembledNode node_data = disassemble_muldiv (node, node_negation);
+	bool node_data_changed = false;
 
 	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
 		DisassembledNode child_data = disassemble_muldiv (child->node, child->tag.negated);
@@ -160,23 +161,34 @@ void Simplify::fold_with_children (Node::AdditionSubtraction::Ptr& result, Node:
 			 * Do the folding (sum up constants). */
 			node_data.constant += child_data.constant;
 
-			/* Avoid "+(-x)"
-			 * FIXME maybe this is something to do unconditionally in simplify_nested_nodes() */
-			if (node_data.constant < 0) {
-				node_data.constant = -node_data.constant;
-				node_negation = true;
-			} else {
-				node_negation = false;
-			}
-
-			/* Build the node and replace source node with the folded version. */
-			node = assemble_muldiv (std::move (node_data));
+			/* Mark the node for rebuilding. */
+			node_data_changed = true;
 
 			/* Erase the second node participated in folding.
-			 * Iterator becomes invalid - return immediately. */
+			 * Iterator becomes invalid - exit the loop. */
 			result->children().erase (child);
-			return;
+			break;
 		}
+	}
+
+	/* Avoid "+(-x)" */
+	if (node_data.constant < 0) {
+		node_data.constant = -node_data.constant;
+
+		if (node_negation != true) {
+			node_negation = true;
+			node_data_changed = true;
+		}
+	} else {
+		if (node_negation != false) {
+			node_negation = false;
+			node_data_changed = true;
+		}
+	}
+
+	if (node_data_changed) {
+		/* Build the node and replace source node with the folded version. */
+		node = assemble_muldiv (std::move (node_data));
 	}
 }
 
@@ -306,6 +318,7 @@ void Simplify::fold_with_children (Node::MultiplicationDivision::Ptr& result, No
 
 	/* disassemble (node; node_negation) into a constant and a subtree. */
 	DisassembledNode node_data = disassemble_power (node, node_reciprocation);
+	bool node_data_changed = false;
 
 	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
 		DisassembledNode child_data = disassemble_power (child->node, child->tag.reciprocated);
@@ -315,23 +328,34 @@ void Simplify::fold_with_children (Node::MultiplicationDivision::Ptr& result, No
 			 * Do the folding (sum up constants). */
 			node_data.constant += child_data.constant;
 
-			/* Avoid "*(x^-1)"
-			 * FIXME maybe this is something to do unconditionally in simplify_nested_nodes() */
-			if (node_data.constant < 0) {
-				node_data.constant = -node_data.constant;
-				node_reciprocation = true;
-			} else {
-				node_reciprocation = false;
-			}
-
-			/* Build the node and replace source node with the folded version. */
-			node = assemble_power (std::move (node_data), *this);
+			/* Mark the node for rebuilding. */
+			node_data_changed = true;
 
 			/* Erase the second node participated in folding.
-			 * Iterator becomes invalid - return immediately. */
+			 * Iterator becomes invalid - end the loop immediately. */
 			result->children().erase (child);
-			return;
+			break;
 		}
+	}
+
+	/* Avoid "*(x^-1)" */
+	if (node_data.constant < 0) {
+		node_data.constant = -node_data.constant;
+
+		if (node_reciprocation != true) {
+			node_reciprocation = true;
+			node_data_changed = true;
+		}
+	} else {
+		if (node_reciprocation != false) {
+			node_reciprocation = false;
+			node_data_changed = true;
+		}
+	}
+
+	if (node_data_changed) {
+		/* Build the node and replace source node with the folded version. */
+		node = assemble_power (std::move (node_data), *this);
 	}
 }
 
