@@ -22,7 +22,7 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 		stream_ << ")";
 	}
 
-	return std::move (ret);
+	return ret;
 }
 
 bool Print::need_substitution (const std::string& name) const

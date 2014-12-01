@@ -39,7 +39,7 @@ Node::Base::Ptr Parser::get_arithm (Node::Base::Ptr(Parser::*next)(),
 	}
 
 	if (child) {
-		return std::move (child);
+		return child;
 	} else {
 		return std::move (node);
 	}
@@ -71,7 +71,7 @@ Node::Base::Ptr Parser::get_power()
 		result->add_child (get_sub_expr());
 		return std::move (result);
 	} else {
-		return std::move (base);
+		return base;
 	}
 }
 
@@ -86,7 +86,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 	if (current_.check_and_advance ("(")) {
 		Node::Base::Ptr sub_expr = parse();
 		if (current_.check_and_advance (")")) {
-			return std::move (sub_expr);
+			return sub_expr;
 		} else {
 			throw std::runtime_error ("Parse error: mismatched parentheses");
 		}

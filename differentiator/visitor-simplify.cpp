@@ -109,7 +109,7 @@ DisassembledNode disassemble_muldiv (const Node::Base::Ptr& node, bool negate)
 		result.constant = -result.constant;
 	}
 
-	return std::move (result);
+	return result;
 }
 
 Node::Base::Ptr assemble_muldiv (DisassembledNode&& node_data)
@@ -282,7 +282,7 @@ DisassembledNode disassemble_power (const Node::Base::Ptr& node, bool reciprocat
 		result.constant = -result.constant;
 	}
 
-	return std::move (result);
+	return result;
 }
 
 Node::Base::Ptr assemble_power (DisassembledNode&& node_data, Simplify& simplifier)
