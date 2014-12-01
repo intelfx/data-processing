@@ -19,6 +19,7 @@ int main (int argc, char** argv)
 
 	std::string variable_name;
 	std::string latex_file;
+	std::string latex_name;
 	bool verbose = !getenv ("TERSE");
 	bool machine_output = false;
 	bool latex_output = false;
@@ -41,6 +42,16 @@ int main (int argc, char** argv)
 		} else {
 			std::cerr << "WARNING: LATEX_FILE= variable is set but empty; set it to desired file name" << std::endl;
 		}
+	}
+
+	if (char* name = getenv ("LATEX_NAME")) {
+		if (name[0] != '\0') {
+			latex_name = std::string (name);
+		} else {
+			std::cerr << "WARNING: LATEX_NAME= variable is set but empty; set it to desired variable name" << std::endl;
+		}
+	} else {
+		latex_name = variable_name;
 	}
 
 	insert_constants();
@@ -147,8 +158,8 @@ int main (int argc, char** argv)
 
 		Visitor::LaTeX::Document document (latex_file.c_str());
 
-		document.print (variable_name, tree, true, true);
-		document.print (variable_name, tree, simplified);
-		document.print (std::string ("\\sigma ") + variable_name, error, true, true);
+		document.print (latex_name, tree, true, true);
+		document.print (latex_name, tree, simplified);
+		document.print (std::string ("\\sigma ") + latex_name, error, true, true);
 	}
 }
