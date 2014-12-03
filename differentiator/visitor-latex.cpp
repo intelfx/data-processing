@@ -187,12 +187,14 @@ boost::any LaTeX::visit (Node::Power& node)
 
 boost::any LaTeX::visit (Node::MultiplicationDivision& node)
 {
-	bool has_frac = false;
+	size_t mul_count = 0, div_count = 0;
 
 	for (auto& child: node.children()) {
 		if (child.tag.reciprocated) {
 			stream_ << "\\frac {";
-			has_frac = true;
+			++div_count;
+		} else {
+			++mul_count;
 		}
 	}
 
@@ -217,8 +219,13 @@ boost::any LaTeX::visit (Node::MultiplicationDivision& node)
 			}
 		}
 
-		if (has_frac) {
-			/* skip parenthesizing anything because { .. } are effectively parentheses */
+		if (dynamic_cast<Node::MultiplicationDivision*> (child.node.get()) ||
+		    child.tag.reciprocated ||
+		    (mul_count == 1)) {
+			/* skip parenthesizing if either:
+			 * - the child is mul-div node (\\frac is a parenthesizing construction by itself)
+			 * - the child is reciprocated (it is enclosed in { .. })
+			 * - we are the single multiplier (same) */
 			child.node->accept (*this);
 		} else {
 			parenthesized_visit (node, child.node);
