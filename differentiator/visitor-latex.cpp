@@ -187,9 +187,12 @@ boost::any LaTeX::visit (Node::Power& node)
 
 boost::any LaTeX::visit (Node::MultiplicationDivision& node)
 {
+	bool has_frac = false;
+
 	for (auto& child: node.children()) {
 		if (child.tag.reciprocated) {
 			stream_ << "\\frac {";
+			has_frac = true;
 		}
 	}
 
@@ -214,8 +217,12 @@ boost::any LaTeX::visit (Node::MultiplicationDivision& node)
 			}
 		}
 
-		/* skip parenthesizing anything because { .. } are effectively parentheses */
-		child.node->accept (*this);
+		if (has_frac) {
+			/* skip parenthesizing anything because { .. } are effectively parentheses */
+			child.node->accept (*this);
+		} else {
+			parenthesized_visit (node, child.node);
+		}
 
 		if (child.tag.reciprocated) {
 			stream_ << "}";
