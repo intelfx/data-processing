@@ -240,17 +240,22 @@ std::string LaTeX::prepare_name (const std::string& name)
 		return "\\pi";
 	}
 
-	size_t underscore = name.find ('_');
-	if (underscore == std::string::npos) {
-		return name;
-	} else {
-		std::string result;
-		result.append (name, 0, underscore + 1);
+	size_t underscore = 0, underscore_prev = 0, underscore_count = 0;
+	std::string result;
+
+	while ((underscore = name.find ('_', underscore)) != std::string::npos) {
+		++underscore;
+		result.append (name, underscore_prev, underscore - underscore_prev);
 		result.append ("{");
-		result.append (name, underscore + 1, std::string::npos);
-		result.append ("}");
-		return result;
+		underscore_prev = underscore;
+		++underscore_count;
 	}
+	result.append (name, underscore_prev, std::string::npos);
+	for (size_t i = 0; i < underscore_count; ++i) {
+		result += '}';
+	}
+
+	return result;
 }
 
 std::string LaTeX::prepare_value (data_t value)
