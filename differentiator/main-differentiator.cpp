@@ -55,7 +55,7 @@ int main (int argc, char** argv)
 	}
 
 	Node::Base::Ptr tree = Parser (expression, variables).parse(),
-	                simplified = simplify_tree (tree, differentiation_variable);
+	                simplified = simplify_tree (tree.get(), differentiation_variable);
 	Visitor::Print print_symbolic (std::cout, false);
 
 	std::cout << std::endl
@@ -67,7 +67,7 @@ int main (int argc, char** argv)
 	std::cout << std::endl
 	          << "Partial derivatives:" << std::endl;
 
-	Node::Base::Ptr derivative = differentiate (simplified, differentiation_variable);
+	Node::Base::Ptr derivative = differentiate (simplified.get(), differentiation_variable);
 	std::cout << "dF/d" << differentiation_variable << " = "; derivative->accept (print_symbolic); std::cout << std::endl;
 
 	if (latex_output) {
@@ -77,10 +77,10 @@ int main (int argc, char** argv)
 
 		Visitor::LaTeX::Document document (latex_file.c_str());
 
-		document.print (output_name, tree, false, false);
-		document.print (output_name, tree, simplified);
+		document.print (output_name, tree.get(), false, false);
+		document.print (output_name, tree.get(), simplified.get());
 		std::ostringstream derivative_name;
 		derivative_name << "\\frac {\\partial " << output_name << "} {\\partial " << differentiation_variable << "}";
-		document.print (derivative_name.str(), derivative, false, false);
+		document.print (derivative_name.str(), derivative.get(), false, false);
 	}
 }

@@ -76,7 +76,7 @@ int main (int argc, char** argv)
 	}
 
 	Node::Base::Ptr tree = Parser (expression, variables).parse(),
-	                simplified = simplify_tree (tree);
+	                simplified = simplify_tree (tree.get());
 	Visitor::Print print_symbolic (std::cerr, false),
 	               print_substitute (std::cerr, true);
 	Visitor::Calculate calculate;
@@ -98,7 +98,7 @@ int main (int argc, char** argv)
 
 	for (auto it = variables.begin(); it != variables.end(); ++it) {
 		Node::Variable::Ptr error (new Node::Variable (it->first, it->second, true));
-		Node::Base::Ptr derivative = differentiate (simplified, it->first);
+		Node::Base::Ptr derivative = differentiate (simplified.get(), it->first);
 
 		if (fp_cmp (error->value(), 0) ||
 		    fp_cmp (derivative->accept_value (calculate), 0)) {
@@ -125,30 +125,29 @@ int main (int argc, char** argv)
 		full_squared_error->add_child (std::move (partial_error), false);
 	}
 
-	Node::Power::Ptr full_error (new Node::Power);
-	full_error->add_child (std::move (full_squared_error));
-	full_error->add_child (Node::Base::Ptr (new Node::Value (0.5)));
+	Node::Power::Ptr error (new Node::Power);
+	error->add_child (std::move (full_squared_error));
+	error->add_child (Node::Base::Ptr (new Node::Value (0.5)));
 
-	Node::Base::Ptr error (std::move (full_error));
-	error = simplify_tree (error);
+	Node::Base::Ptr error_simplified = simplify_tree (error.get());
 
 	if (verbose) {
 		std::cerr << std::endl
 		          << "Total error:" << std::endl;
-		std::cerr << "ΔF = "; error->accept (print_symbolic); std::cerr << " =" << std::endl;
-		std::cerr << "   = "; error->accept (print_substitute); std::cerr << " =" << std::endl;
-		std::cerr << "   = " << error->accept_value (calculate) << std::endl;
+		std::cerr << "ΔF = "; error_simplified->accept (print_symbolic); std::cerr << " =" << std::endl;
+		std::cerr << "   = "; error_simplified->accept (print_substitute); std::cerr << " =" << std::endl;
+		std::cerr << "   = " << error_simplified->accept_value (calculate) << std::endl;
 	} else {
 		std::cerr << " F(...) = " << expression
 		          << " F = " << simplified->accept_value (calculate)
-		          << " ΔF = " << error->accept_value (calculate) << std::endl;
+		          << " ΔF = " << error_simplified->accept_value (calculate) << std::endl;
 	}
 
 	if (machine_output) {
 		if (!variable_name.empty()) {
 			std::cout << variable_name << " ";
 		}
-		std::cout << simplified->accept_value (calculate) << " " << error->accept_value (calculate) << std::endl;
+		std::cout << simplified->accept_value (calculate) << " " << error_simplified->accept_value (calculate) << std::endl;
 	}
 
 	if (latex_output) {
@@ -158,8 +157,8 @@ int main (int argc, char** argv)
 
 		Visitor::LaTeX::Document document (latex_file.c_str());
 
-		document.print (latex_name, tree, true, true);
-		document.print (latex_name, tree, simplified);
-		document.print (std::string ("\\sigma ") + latex_name, error, true, true);
+		document.print (latex_name, tree.get(), true, true);
+		document.print (latex_name, tree.get(), simplified.get());
+		document.print (std::string ("\\sigma ") + latex_name, error_simplified.get(), true, true);
 	}
 }

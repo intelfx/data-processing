@@ -84,7 +84,7 @@ void LaTeX::Document::write_equation_header (const std::string& name)
 	first_in_document_ = true;
 }
 
-void LaTeX::Document::print_expression (Node::Base::Ptr& tree, Base& visitor)
+void LaTeX::Document::print_expression (Node::Base* tree, Base& visitor)
 {
 	write_linebreaks();
 
@@ -105,7 +105,7 @@ void LaTeX::Document::write_equation_footer()
 	stream_ << "\\intertext{" << std::endl;
 }
 
-void LaTeX::Document::print (const std::string& name, Node::Base::Ptr& tree, bool substitute, bool calculate)
+void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, bool calculate)
 {
 	LaTeX printer_literal (stream_, false),
 	      printer_substituting (stream_, true);
@@ -126,7 +126,7 @@ void LaTeX::Document::print (const std::string& name, Node::Base::Ptr& tree, boo
 	write_equation_footer();
 }
 
-void LaTeX::Document::print (const std::string& name, Node::Base::Ptr& tree, Node::Base::Ptr& simplified)
+void LaTeX::Document::print (const std::string& name, Node::Base* tree, Node::Base* simplified)
 {
 	LaTeX printer_literal (stream_, false);
 

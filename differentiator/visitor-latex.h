@@ -21,15 +21,15 @@ public:
 		void write_equation_header (const std::string& name);
 		void write_equation_footer();
 
-		void print_expression (Node::Base::Ptr& tree, Visitor::Base& visitor);
+		void print_expression (Node::Base* tree, Visitor::Base& visitor);
 		void print_value (data_t value);
 
 	public:
 		Document (const char* file);
 		~Document();
 
-		void print (const std::string& name, Node::Base::Ptr& tree, bool substitute, bool calculate);
-		void print (const std::string& name, Node::Base::Ptr& tree, Node::Base::Ptr& simplified);
+		void print (const std::string& name, Node::Base* tree, bool substitute, bool calculate);
+		void print (const std::string& name, Node::Base* tree, Node::Base* simplified);
 	};
 
 private:

@@ -36,7 +36,7 @@ void read_variables (const char* path)
 	}
 }
 
-Node::Base::Ptr simplify_tree (Node::Base::Ptr& tree)
+Node::Base::Ptr simplify_tree (Node::Base* tree)
 {
 	Visitor::Optimize optimizer;
 	Visitor::Simplify simplifier;
@@ -54,7 +54,7 @@ Visitor::Simplify maybe_partial_simplifier (const std::string& partial_variable)
 	}
 }
 
-Node::Base::Ptr simplify_tree (Node::Base::Ptr& tree, const std::string& partial_variable)
+Node::Base::Ptr simplify_tree (Node::Base* tree, const std::string& partial_variable)
 {
 	Visitor::Optimize optimizer;
 	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
@@ -63,7 +63,7 @@ Node::Base::Ptr simplify_tree (Node::Base::Ptr& tree, const std::string& partial
 	           ->accept_ptr (optimizer);
 }
 
-Node::Base::Ptr differentiate (Node::Base::Ptr& tree, const std::string& partial_variable)
+Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable)
 {
 	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
 	Visitor::Optimize optimizer;
