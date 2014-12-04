@@ -1,7 +1,6 @@
 #include "visitor-latex.h"
 #include "visitor-calculate.h"
 
-#include <sstream>
 #include <regex>
 
 namespace {

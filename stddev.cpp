@@ -1,5 +1,4 @@
 #include "util.h"
-#include <sstream>
 
 static const size_t MAX_SIGMA = 2;
 

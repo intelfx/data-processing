@@ -1,6 +1,5 @@
 #include "util.h"
 #include "expr.h"
-#include <sstream>
 #include <cctype>
 #include <dlfcn.h>
 

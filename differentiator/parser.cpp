@@ -1,7 +1,5 @@
 #include "parser.h"
 
-#include <sstream>
-
 Parser::Parser (const Lexer::string& s, const Variable::Map& v)
 : current_ (LexerIterator (s))
 , variables_ (v)

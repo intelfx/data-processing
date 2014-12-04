@@ -1,7 +1,5 @@
 #include "visitor-differentiate.h"
 
-#include <sstream>
-
 namespace Visitor {
 
 Differentiate::Differentiate(const std::string& variable)

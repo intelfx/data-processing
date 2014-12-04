@@ -1,7 +1,5 @@
 #include "visitor-optimize.h"
 
-#include <sstream>
-
 namespace Visitor {
 
 boost::any Optimize::visit (Node::Value& node)

@@ -1,7 +1,5 @@
 #include "visitor-simplify.h"
 
-#include <sstream>
-
 namespace Visitor {
 
 Simplify::Simplify (const std::string& variable)

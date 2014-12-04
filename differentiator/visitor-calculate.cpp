@@ -1,7 +1,5 @@
 #include "visitor-calculate.h"
 
-#include <sstream>
-
 namespace Visitor {
 
 boost::any Calculate::visit (Node::Value& node)

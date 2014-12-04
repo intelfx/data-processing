@@ -6,7 +6,6 @@
 #include "visitor-latex.h"
 
 #include <iomanip>
-#include <sstream>
 
 int main (int argc, char** argv)
 {
