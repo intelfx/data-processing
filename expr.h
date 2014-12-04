@@ -25,14 +25,15 @@ const data_t eps = 1e-9;
 struct Variable
 {
 	data_t value, error;
+	bool do_not_substitute;
 
 	bool no_error() const { return fabsl (error) < eps; }
 
 	typedef std::map<std::string, Variable> Map;
 
-	static Map::value_type make (std::string name, data_t value, data_t error)
+	static Map::value_type make (std::string name, data_t value, data_t error, bool do_not_substitute)
 	{
-		return {std::move (name), Variable { value, error }};
+		return {std::move (name), Variable { value, error, do_not_substitute }};
 	}
 
 	static Map::value_type read (std::istream& in)
@@ -40,7 +41,7 @@ struct Variable
 		std::string name;
 		data_t value, error;
 		in >> name >> value >> error;
-		return Map::value_type { name, Variable { value, error } };
+		return Map::value_type { name, Variable { value, error, false } };
 	}
 };
 

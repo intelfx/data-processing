@@ -18,8 +18,8 @@ Variable::Map variables;
 
 void insert_constants()
 {
-	variables.insert (Variable::make ("pi", M_PI, 0));
-	variables.insert (Variable::make ("g", 9.81, 0));
+	variables.insert (Variable::make ("pi", M_PI, 0, true));
+	variables.insert (Variable::make ("g", 9.81, 0, true));
 }
 
 /*

@@ -147,7 +147,7 @@ boost::any LaTeX::visit (Node::Value& node)
 
 boost::any LaTeX::visit (Node::Variable& node)
 {
-	if (substitute_ && need_substitution (node.name())) {
+	if (substitute_ && node.can_be_substituted()) {
 		stream_ << prepare_value (node.value());
 	} else {
 		if (node.is_error()) {

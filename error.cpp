@@ -30,6 +30,7 @@ struct AugmentedVariable : Variable
 	{
 		AugmentedVariable v;
 		in >> v.name >> v.value >> v.error;
+		v.do_not_substitute = false;
 		v.mode = NONE;
 		return v;
 	}

@@ -125,6 +125,7 @@ public:
 
 	bool is_error() const { return is_error_; }
 	bool is_target_variable (const std::string& desired) const { return !is_error_ && (name_ == desired); }
+	bool can_be_substituted() const { return !variable_.do_not_substitute; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str) const;

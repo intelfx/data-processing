@@ -19,7 +19,7 @@ int main (int argc, char** argv)
 	insert_constants();
 
 	for (int i = 2; i < argc; ++i) {
-		variables.insert (Variable::make (argv[i], 0, 0));
+		variables.insert (Variable::make (argv[i], 0, 0, false));
 	}
 
 	bool latex_output = false;
