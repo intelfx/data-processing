@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-Parser::Parser (const Lexer::string& s, const VariableMap& v)
+Parser::Parser (const Lexer::string& s, const Variable::Map& v)
 : current_ (LexerIterator (s))
 , variables_ (v)
 {

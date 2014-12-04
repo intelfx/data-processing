@@ -11,6 +11,40 @@
 typedef data_t(*Func)();
 
 /*
+ * Defines a single variable with name, value, error and mode of error application.
+ */
+
+struct AugmentedVariable : Variable
+{
+	std::string name;
+	enum Mode
+	{
+		NONE = 0,
+		MINUS_ERROR,
+		PLUS_ERROR
+	} mode;
+
+	typedef std::vector<AugmentedVariable> Vec;
+
+	static Vec::value_type read (std::istream& in)
+	{
+		AugmentedVariable v;
+		in >> v.name >> v.value >> v.error;
+		v.mode = NONE;
+		return v;
+	}
+};
+
+/*
+ * Adds a single named variable definition.
+ */
+
+inline void parse_variable (AugmentedVariable::Vec& vec, std::istream& in)
+{
+	vec.push_back (AugmentedVariable::read (in));
+}
+
+/*
  * Constants
  */
 
@@ -27,7 +61,7 @@ const char* compiler = "${CXX:-clang++} ${CXXFLAGS:--O3 -Wall -Wextra -Werror} -
 namespace {
 
 // all variables being considered
-VariableVec variables;
+AugmentedVariable::Vec variables;
 
 // expression evaluation results 
 data_t result_nominal, result_min, result_max;
@@ -183,12 +217,12 @@ void process (size_t idx)
 	} else {
 		// perform substitutions for current variable and continue recursion
 		if (variables[idx].no_error()) {
-			variables[idx].mode = NamedVariable::NONE;
+			variables[idx].mode = AugmentedVariable::NONE;
 			process (idx + 1);
 		} else {
-			variables[idx].mode = NamedVariable::MINUS_ERROR;
+			variables[idx].mode = AugmentedVariable::MINUS_ERROR;
 			process (idx + 1);
-			variables[idx].mode = NamedVariable::PLUS_ERROR;
+			variables[idx].mode = AugmentedVariable::PLUS_ERROR;
 			process (idx + 1);
 		}
 	}
@@ -227,7 +261,7 @@ int main (int argc, char** argv)
 
 	std::cout << " F(...) = " << argv[2] << std::endl;
 
-	for (const NamedVariable& v: variables) {
+	for (const AugmentedVariable& v: variables) {
 		std::cout << " " << v.name << " = " << v.value << " ± " << v.error << std::endl;
 	}
 
@@ -248,11 +282,11 @@ int main (int argc, char** argv)
 
 data_t get_variable (size_t idx)
 {
-	NamedVariable& v = variables.at (idx);
+	AugmentedVariable& v = variables.at (idx);
 	switch (v.mode) {
-	case NamedVariable::NONE:        return v.value;
-	case NamedVariable::MINUS_ERROR: return v.value - v.error;
-	case NamedVariable::PLUS_ERROR:  return v.value + v.error;
+	case AugmentedVariable::NONE:        return v.value;
+	case AugmentedVariable::MINUS_ERROR: return v.value - v.error;
+	case AugmentedVariable::PLUS_ERROR:  return v.value + v.error;
 	default: std::cerr << "Incorrect variable mode" << std::endl; abort();
 	}
 }

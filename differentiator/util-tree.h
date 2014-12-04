@@ -7,7 +7,7 @@
  * Main data
  */
 
-extern VariableMap variables;
+extern Variable::Map variables;
 
 /*
  * Populates the variable definition with some predefined constants.

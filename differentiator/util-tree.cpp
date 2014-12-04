@@ -10,7 +10,7 @@
 
 
 // all variables being considered
-VariableMap variables;
+Variable::Map variables;
 
 /*
  * Populates the variable definition with some predefined constants.

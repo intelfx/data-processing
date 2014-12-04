@@ -7,7 +7,7 @@
 class Parser
 {
 	LexerIterator current_;
-	const VariableMap& variables_;
+	const Variable::Map& variables_;
 
 	template <typename T, typename ChildInserter>
 	Node::Base::Ptr get_arithm (Node::Base::Ptr(Parser::*next)(),
@@ -20,7 +20,7 @@ class Parser
 	Node::Base::Ptr get_sub_expr();
 
 public:
-	Parser (const Lexer::string& s, const VariableMap& v);
+	Parser (const Lexer::string& s, const Variable::Map& v);
 	~Parser() = default;
 
 	Node::Base::Ptr parse();

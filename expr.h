@@ -28,54 +28,29 @@ struct Variable
 
 	bool no_error() const { return fabsl (error) < eps; }
 
-	static std::pair<std::string, Variable> make (std::string name, data_t value, data_t error)
+	typedef std::map<std::string, Variable> Map;
+
+	static Map::value_type make (std::string name, data_t value, data_t error)
 	{
-		return std::pair<std::string, Variable> (std::move (name), Variable { value, error });
+		return {std::move (name), Variable { value, error }};
+	}
+
+	static Map::value_type read (std::istream& in)
+	{
+		std::string name;
+		data_t value, error;
+		in >> name >> value >> error;
+		return Map::value_type { name, Variable { value, error } };
 	}
 };
-typedef std::map<std::string, Variable> VariableMap;
-
-/*
- * Defines a single variable with name, value and error.
- */
-
-struct NamedVariable
-{
-	std::string name;
-	data_t value, error;
-	enum Mode
-	{
-		NONE = 0,
-		MINUS_ERROR,
-		PLUS_ERROR
-	} mode;
-
-	bool no_error() const { return fabsl (error) < eps; }
-};
-typedef std::vector<NamedVariable> VariableVec;
-
-/*
- * Adds a single named variable definition.
- */
-
-inline void parse_variable (VariableVec& vec, std::istream& stream)
-{
-	NamedVariable v;
-	v.mode = NamedVariable::NONE;
-	stream >> v.name >> v.value >> v.error;
-	vec.push_back (std::move (v));
-}
 
 /*
  * Adds a single variable definition.
  */
 
-inline void parse_variable (VariableMap& map, std::istream& stream)
+inline void parse_variable (Variable::Map& map, std::istream& stream)
 {
-	std::string name;
-	Variable v;
-	stream >> name >> v.value >> v.error;
-	map.insert (std::make_pair (std::move (name), std::move (v)));
+	map.insert (Variable::read (stream));
 }
 
 /*
