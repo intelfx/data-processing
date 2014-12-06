@@ -14,13 +14,23 @@
 #include <cmath>
 #include <cstdlib>
 
+inline void configure_exceptions (std::istream& stream)
+{
+	stream.exceptions (std::istream::badbit | std::istream::failbit);
+}
+
+inline void configure_exceptions (std::ostream& stream)
+{
+	stream.exceptions (std::ostream::badbit | std::ostream::failbit);
+}
+
 /*
  * Opens a file for reading and configures ifstream's exceptions.
  */
 
 inline void open (std::ifstream& stream, const char* name)
 {
-	stream.exceptions (std::ifstream::badbit | std::ifstream::failbit);
+	configure_exceptions (stream);
 	stream.open (name);
 }
 
@@ -30,7 +40,7 @@ inline void open (std::ifstream& stream, const char* name)
 
 inline void open (std::ofstream& stream, const char* name)
 {
-	stream.exceptions (std::ofstream::badbit | std::ofstream::failbit);
+	configure_exceptions (stream);
 	stream.open (name);
 }
 
