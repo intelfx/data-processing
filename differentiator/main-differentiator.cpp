@@ -76,10 +76,10 @@ int main (int argc, char** argv)
 
 		Visitor::LaTeX::Document document (latex_file.c_str());
 
-		document.print (output_name, tree.get(), false, false);
+		document.print (output_name, tree.get(), false, nullptr);
 		document.print (output_name, tree.get(), simplified.get());
 		std::ostringstream derivative_name;
 		derivative_name << "\\frac {\\partial " << output_name << "} {\\partial " << differentiation_variable << "}";
-		document.print (derivative_name.str(), derivative.get(), false, false);
+		document.print (derivative_name.str(), derivative.get(), false, nullptr);
 	}
 }

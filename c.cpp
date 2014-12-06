@@ -24,6 +24,7 @@ int main (int argc, char** argv)
 	}
 
 	Visitor::Print printer (std::cout, false);
+	Visitor::Calculate calculate;
 	Visitor::LaTeX::Document doc ("out.tex");
 
 	for (int K = Ka[0]; K <= Ka[1]; ++K) {
@@ -52,6 +53,8 @@ int main (int argc, char** argv)
 
 		std::cout << "(" << N << " " << K << ") = "; fraction->accept (printer); std::cout << std::endl;
 
-		doc.print (static_cast<std::ostringstream&&> (std::ostringstream() << "\\dbinom {" << N << "} {" << K << "}").str(), fraction.get(), true, true);
+		data_t value = fraction->accept_value (calculate);
+
+		doc.print (static_cast<std::ostringstream&&> (std::ostringstream() << "\\dbinom {" << N << "} {" << K << "}").str(), fraction.get(), true, &value);
 	}
 }

@@ -155,8 +155,11 @@ int main (int argc, char** argv)
 
 		Visitor::LaTeX::Document document (latex_file.c_str());
 
-		document.print (latex_name, tree.get(), true, true);
+		data_t value = simplified->accept_value (calculate),
+		       error_value = error_simplified->accept_value (calculate);
+
+		document.print (latex_name, tree.get(), true, &value);
 		document.print (latex_name, tree.get(), simplified.get());
-		document.print (std::string ("\\sigma ") + latex_name, error_simplified.get(), true, true);
+		document.print (std::string ("\\sigma ") + latex_name, error_simplified.get(), true, &error_value);
 	}
 }

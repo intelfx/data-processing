@@ -20,7 +20,7 @@ LaTeX::Document::Document (const char* file)
 	open (stream_, file);
 
 	std::ostringstream latex_render_command_builder;
-	latex_render_command_builder << "pdflatex " << "\"" << file << "\" >/dev/null";
+	latex_render_command_builder << "pdflatex -halt-on-error " << "\"" << file << "\" >/dev/null";
 	latex_render_command_ = latex_render_command_builder.str();
 
 	write_header();
@@ -34,7 +34,7 @@ LaTeX::Document::~Document()
 	int exitcode = system (latex_render_command_.c_str());
 	if (exitcode) {
 		std::ostringstream err;
-		err << "LaTeX renderer exited with non-zero exit code: " << err;
+		err << "LaTeX renderer exited with non-zero exit code: " << exitcode;
 		throw std::runtime_error (err.str());
 	}
 }
@@ -104,7 +104,7 @@ void LaTeX::Document::write_equation_footer()
 	stream_ << "\\intertext{" << std::endl;
 }
 
-void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, bool calculate)
+void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, const data_t* value)
 {
 	LaTeX printer_literal (stream_, false),
 	      printer_substituting (stream_, true);
@@ -117,9 +117,8 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool sub
 		print_expression (tree, printer_substituting);
 	}
 
-	if (calculate) {
-		Visitor::Calculate calculator;
-		print_value (tree->accept_value (calculator));
+	if (value) {
+		print_value (*value);
 	}
 
 	write_equation_footer();

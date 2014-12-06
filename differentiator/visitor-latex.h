@@ -28,7 +28,7 @@ public:
 		Document (const char* file);
 		~Document();
 
-		void print (const std::string& name, Node::Base* tree, bool substitute, bool calculate);
+		void print (const std::string& name, Node::Base* tree, bool substitute, const data_t* value);
 		void print (const std::string& name, Node::Base* tree, Node::Base* simplified);
 	};
 
