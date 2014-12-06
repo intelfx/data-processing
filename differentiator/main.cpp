@@ -70,16 +70,15 @@ void print_expression_aligned (std::ostream& out, const std::string& name, Node:
 	out << std::endl;
 }
 
-void print_expression_terse (std::ostream& out, const std::string& name, Node::Base* tree)
+void print_expression_terse (std::ostream& out, Node::Base* tree)
 {
 	static Visitor::Print print_symbolic (out, false);
 
-	out << " " << name << "(...) = "; tree->accept (print_symbolic);
+	tree->accept (print_symbolic);
 }
 
-void print_value_terse (std::ostream& out, const std::string& name, const data_t* value)
+void print_value_terse (std::ostream& out, const data_t* value)
 {
-	out << " " << name << " = ";
 	if (value) {
 		out << *value;
 	} else {
@@ -293,12 +292,16 @@ int main (int argc, char** argv)
 	bool expression_simplified;
 
 	if (parameters.task.simplify.variable.empty()) {
-		std::cerr << "Will simplify the expression generally." << std::endl
-		          << std::endl;
+		if (!parameters.output.common.terse) {
+			std::cerr << "Will simplify the expression generally." << std::endl
+			          << std::endl;
+		}
 		expression.tree = simplify_tree (expression_raw.get());
 	} else {
-		std::cerr << "Will simplify the expression for variable '" << parameters.task.simplify.variable << "'." << std::endl
-		          << std::endl;
+		if (!parameters.output.common.terse) {
+			std::cerr << "Will simplify the expression for variable '" << parameters.task.simplify.variable << "'." << std::endl
+			          << std::endl;
+		}
 		expression.tree = simplify_tree (expression_raw.get(), parameters.task.simplify.variable);
 	}
 
@@ -450,17 +453,21 @@ int main (int argc, char** argv)
 			std::cerr << std::endl;
 		}
 	} else {
+
+		std::cerr << parameters.output.common.name << "(...) = ";
+
 		print_expression_terse (std::cerr,
-		                        parameters.output.common.name,
 		                        expression_raw.get());
 
+		std::cerr << " = ";
+
 		print_value_terse (std::cerr,
-		                   parameters.output.common.name,
 		                   expression.value_ptr());
 
 		if (parameters.task.type == Task::CalculateError) {
+			std::cerr << " ± ";
+
 			print_value_terse (std::cerr,
-			                   "Δ" + parameters.output.common.name,
 			                   error.value_ptr());
 		}
 
