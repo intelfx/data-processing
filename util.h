@@ -14,6 +14,22 @@
 #include <cmath>
 #include <cstdlib>
 
+/*
+ * Numeric: data types
+ */
+
+typedef long double data_t;
+
+/*
+ * Numeric: constants
+ */
+
+namespace {
+
+const data_t eps = 1e-9;
+
+} // anonymous namespace
+
 inline void configure_exceptions (std::istream& stream)
 {
 	stream.exceptions (std::istream::badbit | std::istream::failbit);
@@ -48,7 +64,7 @@ inline void open (std::ofstream& stream, const char* name)
  * Reads a file into a vector.
  */
 
-template <typename T>
+template <typename T = data_t>
 inline std::vector<T> read_into_vector (std::istream& in)
 {
 	std::vector<T> ret;
@@ -62,7 +78,7 @@ inline std::vector<T> read_into_vector (std::istream& in)
 	return std::move (ret);
 }
 
-template <typename T>
+template <typename T = data_t>
 inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
 {
 	std::vector<T> ret;
@@ -80,12 +96,22 @@ inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
 }
 
 /*
+ * Numeric: compares two floating-point values.
+ */
+
+inline bool fp_cmp (data_t _1, data_t _2)
+{
+    return fabsl (_1 - _2) < eps;
+}
+
+/*
  * Numeric: returns average value of the vector.
  */
+
 template <typename T>
-inline double avg (const std::vector<T>& vec)
+inline data_t avg (const std::vector<T>& vec)
 {
-	return (double) std::accumulate (vec.begin(), vec.end(), (T) 0) / vec.size();
+	return (data_t) std::accumulate (vec.begin(), vec.end(), (T) 0) / vec.size();
 }
 
 /*
@@ -94,9 +120,9 @@ inline double avg (const std::vector<T>& vec)
  */
 
 template <typename T>
-inline double avg_product (const std::vector<T>& vec1, const std::vector<T>& vec2)
+inline data_t avg_product (const std::vector<T>& vec1, const std::vector<T>& vec2)
 {
-	return (double) std::inner_product (vec1.begin(), vec1.end(), vec2.begin(), (T) 0) / vec1.size();
+	return (data_t) std::inner_product (vec1.begin(), vec1.end(), vec2.begin(), (T) 0) / vec1.size();
 }
 
 /*

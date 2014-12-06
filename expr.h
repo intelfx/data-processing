@@ -3,22 +3,6 @@
 #include <util.h>
 
 /*
- * Ancillary data types
- */
-
-typedef long double data_t;
-
-/*
- * Constants
- */
-
-namespace {
-
-const data_t eps = 1e-9;
-
-} // anonymous namespace
-
-/*
  * Defines a single variable with a value and an error.
  */
 
@@ -52,13 +36,4 @@ struct Variable
 inline void parse_variable (Variable::Map& map, std::istream& stream)
 {
 	map.insert (Variable::read (stream));
-}
-
-/*
- * Compares two floating-point values.
- */
-
-inline bool fp_cmp (data_t _1, data_t _2)
-{
-	return fabsl (_1 - _2) < eps;
 }
