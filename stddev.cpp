@@ -180,15 +180,13 @@ int main (int argc, char** argv)
 
 		std::cerr << std::endl;
 	} else {
-		std::cerr << "Dataset (" << parameters.output.common.name << ") <N=" << data.size() << "> = " << average << std::endl
-		          << "Error (" << parameters.output.common.name << ") = " << total_error
-		          << " (std. = " << stderror;
+		std::cerr << parameters.output.common.name << " <N=" << data.size() << "> = " << average << " ± " << total_error;
 
 		if (!fp_cmp (systematic_error, 0)) {
-		std::cerr << "; syst. = " << systematic_error;
+			std::cerr << " (std. = " << stderror << "; syst. = " << systematic_error << ")";
 		}
 
-		std::cerr << ")" << std::endl;
+		std::cerr << std::endl;
 	}
 
 	if (parameters.output.machine.enabled) {
