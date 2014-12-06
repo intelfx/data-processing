@@ -4,14 +4,10 @@ add_library (expression
              visitor-print.cpp visitor-calculate.cpp node-clone.cpp visitor-simplify.cpp visitor-optimize.cpp visitor-differentiate.cpp visitor-latex.cpp
              util-tree.cpp)
 
-add_executable (differentiator
-                main-differentiator.cpp)
-target_link_libraries (differentiator expression)
+add_executable (calculator
+                main.cpp)
+target_link_libraries (calculator expression)
 
-add_executable (error_calculator
-                main-error_calculator.cpp)
-target_link_libraries (error_calculator expression)
-
-install(TARGETS differentiator error_calculator
+install(TARGETS calculator
         RUNTIME DESTINATION bin)
 
