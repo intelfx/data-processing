@@ -18,7 +18,7 @@ add_executable(approximate_tangent approximate_tangent.cpp)
 add_subdirectory(differentiator)
 
 add_executable(c c.cpp)
-target_link_libraries(c calculator)
+target_link_libraries(c expression)
 
 install(TARGETS error ols stddev approximate_tangent c
         RUNTIME DESTINATION bin)
