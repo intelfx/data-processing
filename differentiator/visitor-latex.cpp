@@ -248,6 +248,13 @@ std::string LaTeX::prepare_name (const std::string& name)
 	size_t underscore = 0, underscore_prev = 0, underscore_count = 0;
 	std::string result;
 
+	// Don't touch names which already contain braces.
+	// For now we expect that the callers will escape required parts of the name themselves.
+	// TODO: handle this automatically.
+	if (name.find_first_of ("{}") != std::string::npos) {
+		return name;
+	}
+
 	while ((underscore = name.find ('_', underscore)) != std::string::npos) {
 		++underscore;
 		result.append (name, underscore_prev, underscore - underscore_prev);

@@ -491,7 +491,8 @@ int main (int argc, char** argv)
 		                       expression.value_ptr());
 
 		for (const std::pair<const std::string, Expression>& d: differentials) {
-			latex_document->print ("\\frac {\\partial " + parameters.output.latex.name + "} {\\partial " + d.first + "}",
+			latex_document->print ("\\frac {\\partial " + Visitor::LaTeX::prepare_name (parameters.output.latex.name) + "}"
+			                             " {\\partial " + Visitor::LaTeX::prepare_name (d.first) + "}",
 			                       d.second.tree.get(),
 			                       true,
 			                       d.second.value_ptr());
@@ -513,7 +514,7 @@ int main (int argc, char** argv)
 		std::cout << parameters.output.machine.name << " " << (expression.value_computed ? expression.value : NAN);
 
 		if (parameters.task.type == Task::CalculateError) {
-			std::cout << (error.value_computed ? error.value : NAN);
+			std::cout << " " << (error.value_computed ? error.value : NAN);
 		}
 
 		std::cout << std::endl;
