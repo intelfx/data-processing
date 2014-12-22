@@ -92,6 +92,11 @@ struct Expression
 	data_t value;
 	bool value_computed;
 
+	Expression()
+	: value_computed (false)
+	{
+	}
+
 	void compute (const char* explanation)
 	{
 		static Visitor::Calculate calculate;
