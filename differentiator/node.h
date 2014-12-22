@@ -1,7 +1,7 @@
 #pragma once
 
-#include <util.h>
-#include "expr.h"
+#include <util/util.h>
+#include <util/variable.h>
 
 #include <memory>
 #include <boost/any.hpp>

@@ -1,5 +1,5 @@
-#include "util.h"
-#include "expr.h"
+#include <util/util.h>
+#include <util/variable.h>
 #include <cctype>
 #include <dlfcn.h>
 
