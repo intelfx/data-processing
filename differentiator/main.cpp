@@ -41,10 +41,10 @@ const option option_array[] = {
 };
 
 void usage (const char* name) {
-	std::cerr << "Usage: " << name << "[-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
+	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME] [--name-latex NAME]" << std::endl
 	          << "       [-v|--var VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
-	          << "       [-D|--differentiate] [-E|--error] [-S|--simplify VARIABLE] <EXPRESSION>" << std::endl;
+	          << "       [-D|--differentiate VARIABLE] [-E|--error] [-S|--simplify[=VARIABLE]] <EXPRESSION>" << std::endl;
 	exit (EXIT_FAILURE);
 }
 
