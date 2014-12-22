@@ -356,7 +356,7 @@ int main (int argc, char** argv)
 		differential.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential for variable '" << variable << "'").str().c_str());
 
 		Node::Value* differential_value = dynamic_cast<Node::Value*> (differential.tree.get());
-		if (differential_value && fp_cmp (differential_value->value(), 0)) {
+		if (differential_value && (differential_value->value() == 0)) {
 			differentials.erase (d++);
 		} else {
 			++d;
@@ -398,7 +398,7 @@ int main (int argc, char** argv)
 
 		Node::Power::Ptr error_sqrt (new Node::Power);
 		error_sqrt->add_child (std::move (error_sq_sum));
-		error_sqrt->add_child (Node::Base::Ptr (new Node::Value (0.5)));
+		error_sqrt->add_child (Node::Base::Ptr (new Node::Value (rational_t (1, 2))));
 
 		error.tree = simplify_tree (error_sqrt.get());
 

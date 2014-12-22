@@ -12,7 +12,7 @@ std::ostream& operator<< (std::ostream& out, const Node::Base& node)
 
 Base::~Base() = default;
 
-Value::Value (data_t value)
+Value::Value (rational_t value)
 : value_ (value)
 {
 }
@@ -76,7 +76,7 @@ std::pair<Value*, MultiplicationDivisionTag*> MultiplicationDivision::get_or_cre
 	}
 }
 
-data_t MultiplicationDivision::calculate_constant_value (const std::pair<Value*, MultiplicationDivisionTag*> constant)
+rational_t MultiplicationDivision::calculate_constant_value (const std::pair<Value*, MultiplicationDivisionTag*> constant)
 {
 	if (constant.second->reciprocated) {
 		return 1 / constant.first->value();
@@ -85,7 +85,7 @@ data_t MultiplicationDivision::calculate_constant_value (const std::pair<Value*,
 	}
 }
 
-data_t MultiplicationDivision::get_constant_value()
+rational_t MultiplicationDivision::get_constant_value()
 {
 	auto constant = get_constant();
 
@@ -96,12 +96,12 @@ data_t MultiplicationDivision::get_constant_value()
 	}
 }
 
-data_t MultiplicationDivision::get_constant_value_and_release()
+rational_t MultiplicationDivision::get_constant_value_and_release()
 {
 	auto constant = get_constant();
 
 	if (constant.first) {
-		data_t result = calculate_constant_value (constant);
+		rational_t result = calculate_constant_value (constant);
 		release_constant();
 		return result;
 	} else {
@@ -109,7 +109,7 @@ data_t MultiplicationDivision::get_constant_value_and_release()
 	}
 }
 
-void MultiplicationDivision::insert_constant (data_t value)
+void MultiplicationDivision::insert_constant (rational_t value)
 {
 	auto constant = get_constant();
 
@@ -122,19 +122,13 @@ void MultiplicationDivision::insert_constant (data_t value)
 		}
 	}
 
-	if (!fp_cmp (value, 1)) {
+	if (value != 1) {
 		/* Write the new constant (creating it if it doesn't exist) */
 		if (!constant.first) {
 			constant = create_constant();
 		}
-
-		if (fabsl (value) < 1) {
-			constant.first->set_value (1 / value);
-			constant.second->reciprocated = true;
-		} else {
-			constant.first->set_value (value);
-			constant.second->reciprocated = false;
-		}
+		constant.first->set_value (value);
+		constant.second->reciprocated = false;
 	} else {
 		/* Release the existing constant (== write 1) */
 		if (constant.first) {
@@ -142,8 +136,6 @@ void MultiplicationDivision::insert_constant (data_t value)
 		}
 	}
 }
-
-
 
 IMPLEMENT_ACCEPTOR (Value);
 IMPLEMENT_ACCEPTOR (Variable);

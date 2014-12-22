@@ -14,11 +14,15 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <boost/rational.hpp>
+
 /*
  * Numeric: data types
  */
 
 typedef long double data_t;
+typedef long integer_t;
+typedef boost::rational<integer_t> rational_t;
 
 /*
  * Numeric: constants
@@ -93,6 +97,15 @@ inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
 	}
 
 	return std::pair<std::vector<T>, T> (std::move (ret), std::move (ret_error));
+}
+
+/*
+ * Numeric: converts a rational value to floating-point representation.
+ */
+
+inline data_t to_fp (const rational_t& arg)
+{
+    return boost::rational_cast<data_t> (arg);
 }
 
 /*

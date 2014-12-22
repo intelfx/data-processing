@@ -4,7 +4,7 @@ namespace Visitor {
 
 boost::any Calculate::visit (Node::Value& node)
 {
-	return node.value();
+	return to_fp (node.value());
 }
 
 boost::any Calculate::visit (Node::Variable& node)

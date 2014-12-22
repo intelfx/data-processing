@@ -27,7 +27,11 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 
 boost::any Print::visit (Node::Value& node)
 {
-	stream_ << node.value();
+	if (node.value().denominator() == 1) {
+		stream_ << node.value().numerator();
+	} else {
+		stream_ << "(" << node.value() << ")";
+	}
 
 	return boost::any();
 }

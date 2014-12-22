@@ -95,10 +95,10 @@ class Value : public Base
 public:
 	typedef std::unique_ptr<Value> Ptr;
 
-	Value (data_t value);
+	Value (rational_t value);
 
-	data_t value() const { return value_; }
-	void set_value (data_t value) { value_ = value; }
+	rational_t value() const { return value_; }
+	void set_value (rational_t value) { value_ = value; }
 
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str) const;
@@ -109,7 +109,7 @@ public:
     virtual bool compare (const Base::Ptr& rhs) const;
 
 private:
-	data_t value_;
+	rational_t value_;
 };
 
 class Variable : public Base
@@ -220,9 +220,9 @@ public:
 	std::pair<Value*, MultiplicationDivisionTag*> get_constant();
 	std::pair<Value*, MultiplicationDivisionTag*> get_or_create_constant();
 	void release_constant_if_exists();
-	data_t get_constant_value();
-	data_t get_constant_value_and_release();
-	void insert_constant (data_t value);
+	rational_t get_constant_value();
+	rational_t get_constant_value_and_release();
+	void insert_constant (rational_t value);
 
 	DECLARE_ACCEPTOR;
 
@@ -231,7 +231,7 @@ public:
 
 private:
 	std::pair<Value*, MultiplicationDivisionTag*> create_constant();
-	data_t calculate_constant_value (const std::pair<Value*, MultiplicationDivisionTag*> constant);
+	rational_t calculate_constant_value (const std::pair<Value*, MultiplicationDivisionTag*> constant);
 	void release_constant();
 };
 

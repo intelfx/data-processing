@@ -138,7 +138,12 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, Node::Ba
 
 boost::any LaTeX::visit (Node::Value& node)
 {
-	stream_ << prepare_value (node.value());
+	// stream_ << prepare_value (node.value());
+	if (node.value().denominator() == 1) {
+		stream_ << node.value().numerator();
+	} else {
+		stream_ << "\\frac {" << node.value().numerator() << "} {" << node.value().denominator() << "}";
+	}
 
 	return boost::any();
 }
@@ -167,8 +172,13 @@ boost::any LaTeX::visit (Node::Power& node)
 	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent.get());
 
 	if (exponent_value &&
-	    fp_cmp (exponent_value->value(), 0.5)) {
-		stream_ << "\\sqrt {";
+	    exponent_value->value().numerator() == 1) {
+		integer_t denominator = exponent_value->value().denominator();
+		if (denominator == 2) {
+			stream_ << "\\sqrt {";
+		} else {
+			stream_ << "\\sqrt[" << denominator << "] {";
+		}
 		/* skip parenthesizing anything because { .. } are effectively parentheses */
 		base->accept (*this);
 		stream_ << "}";

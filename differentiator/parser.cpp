@@ -93,7 +93,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 	/* numeric literal */
 	try {
 		size_t pos;
-		data_t value = std::stold (*current_, &pos);
+		integer_t value = std::stol (*current_, &pos);
 		if (pos != current_->size()) {
 			std::ostringstream reason;
 			reason << "Parse error: wrong numeric literal: '" << *current_ << "'";
