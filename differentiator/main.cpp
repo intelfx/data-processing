@@ -105,7 +105,7 @@ struct Expression
 			value = tree->accept_value (calculate);
 			value_computed = true;
 		} catch (std::exception& e) {
-			std::cerr << "Warning: could not compute" << explanation << " (" << e.what() << ")" << std::endl
+			std::cerr << "Warning: could not compute " << explanation << " (" << e.what() << ")" << std::endl
 			          << std::endl;
 		}
 	}
