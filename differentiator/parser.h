@@ -13,6 +13,7 @@ class Parser
 	                            std::initializer_list<LexerIterator::string> tokens,
 	                            ChildInserter inserter);
 
+	Node::Base::Ptr get_toplevel();
 	Node::Base::Ptr get_add_sub();
 	Node::Base::Ptr get_mul_div();
 	Node::Base::Ptr get_power();

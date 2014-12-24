@@ -8,6 +8,17 @@ Parser::Parser (const Lexer::string& s, const Variable::Map& v)
 
 Node::Base::Ptr Parser::parse()
 {
+	Node::Base::Ptr result = get_toplevel();
+	if (current_) {
+		std::ostringstream reason;
+		reason << "Parse error: " << current_ << ": expected end of input";
+		throw std::runtime_error (reason.str());
+	}
+	return result;
+}
+
+Node::Base::Ptr Parser::get_toplevel()
+{
 	return get_add_sub();
 }
 
@@ -77,16 +88,20 @@ Node::Base::Ptr Parser::get_sub_expr()
 {
 	/* end of expression */
 	if (!current_) {
-		throw std::runtime_error ("Parse error: unexpected end of expression");
+		std::ostringstream reason;
+		reason << "Parse error: " << current_ << ": expected expression";
+		throw std::runtime_error (reason.str());
 	}
 
 	/* sub-expression */
 	if (current_.check_and_advance ("(")) {
-		Node::Base::Ptr sub_expr = parse();
+		Node::Base::Ptr sub_expr = get_toplevel();
 		if (current_.check_and_advance (")")) {
 			return sub_expr;
 		} else {
-			throw std::runtime_error ("Parse error: mismatched parentheses");
+			std::ostringstream reason;
+			reason << "Parse error: " << current_ << ": expected closing parenthesis";
+			throw std::runtime_error (reason.str());
 		}
 	}
 
@@ -98,6 +113,12 @@ Node::Base::Ptr Parser::get_sub_expr()
 	}
 
 	/* function or variable */
+	if (current_.get_class() != LexerIterator::Classification::Alphabetical) {
+			std::ostringstream reason;
+			reason << "Parse error: " << current_ << ": symbol expected";
+			throw std::runtime_error (reason.str());
+	}
+
 	std::string name = *current_;
 
 	if (std::next (current_).check ("(")) {
@@ -110,13 +131,15 @@ Node::Base::Ptr Parser::get_sub_expr()
 		}
 
 		do {
-			node->add_child (parse());
+			node->add_child (get_toplevel());
 		} while (current_.check_and_advance (","));
 
 		if (current_.check_and_advance (")")) {
 			return std::move (node);
 		} else {
-			throw std::runtime_error ("Parse error: mismatched parentheses");
+			std::ostringstream reason;
+			reason << "Parse error: " << current_ << ": expected closing parenthesis";
+			throw std::runtime_error (reason.str());
 		}
 	}
 
