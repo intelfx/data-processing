@@ -45,19 +45,10 @@ Node::Base::Ptr simplify_tree (Node::Base* tree)
 	           ->accept_ptr (optimizer);
 }
 
-Visitor::Simplify maybe_partial_simplifier (const std::string& partial_variable)
-{
-	if (getenv ("SIMPLIFY")) {
-		return Visitor::Simplify (partial_variable);
-	} else {
-		return Visitor::Simplify();
-	}
-}
-
 Node::Base::Ptr simplify_tree (Node::Base* tree, const std::string& partial_variable)
 {
 	Visitor::Optimize optimizer;
-	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
+	Visitor::Simplify simplifier (partial_variable);
 
 	return tree->accept_ptr (simplifier)
 	           ->accept_ptr (optimizer);
@@ -65,7 +56,7 @@ Node::Base::Ptr simplify_tree (Node::Base* tree, const std::string& partial_vari
 
 Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable)
 {
-	Visitor::Simplify simplifier = maybe_partial_simplifier (partial_variable);
+	Visitor::Simplify simplifier;
 	Visitor::Optimize optimizer;
 	Visitor::Differentiate differentiator (partial_variable);
 
