@@ -14,7 +14,9 @@
 #include <cmath>
 #include <cstdlib>
 
+#ifndef IN_KDEVELOP_PARSER
 #include <boost/rational.hpp>
+#endif // IN_KDEVELOP_PARSER
 
 /*
  * Numeric: data types

@@ -10,24 +10,32 @@ class LexerIterator : public std::iterator<std::forward_iterator_tag, std::strin
 public:
 	typedef value_type string;
 	typedef string::value_type character;
-	string::const_iterator begin_, current_, current_end_, end_;
-	string cache_;
 
-private:
 	enum class Classification
 	{
 		Nothing,
 		Whitespace,
 		Numeric,
 		Alphabetical,
-		PunctuationSingle,
-		PunctuationMultiple
+		OpParentheses,
+		OpArithmetic,
+		OpPowerOperator
 	};
 
-	static bool same_lexem (Classification first, Classification next);
+private:
+	string::const_iterator begin_, current_, current_end_, end_;
 
+	struct {
+		string text;
+		integer_t numeric;
+		Classification classification = Classification::Nothing;
+		bool is_valid = false;
+	} cache_;
+
+	bool classify_check_next (string::const_iterator it, const char* pattern);
 	Classification classify (string::const_iterator it);
 	void next();
+	void fill_cache();
 	bool is_end() const;
 
 public:
@@ -40,20 +48,21 @@ public:
 	{
 	}
 
-	bool operator== (const LexerIterator& rhs) const;
-	bool operator!= (const LexerIterator& rhs) const;
-
 	LexerIterator& operator++();
 	LexerIterator operator++(int);
 	const string& operator*();
 	const string* operator->();
 	operator bool() const;
 
+	Classification get_class() const;
+	integer_t get_numeric() const;
+
 	bool check (std::initializer_list<string> list, size_t* idx = nullptr);
 	bool check (const string& s);
 	bool check_and_advance (std::initializer_list<string> list, size_t* idx = nullptr);
 	bool check_and_advance (const string& s);
 
+	friend std::ostream& operator<< (std::ostream& out, LexerIterator& lexem);
 };
 
 class Lexer

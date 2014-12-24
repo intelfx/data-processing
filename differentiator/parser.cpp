@@ -91,18 +91,10 @@ Node::Base::Ptr Parser::get_sub_expr()
 	}
 
 	/* numeric literal */
-	try {
-		size_t pos;
-		integer_t value = std::stol (*current_, &pos);
-		if (pos != current_->size()) {
-			std::ostringstream reason;
-			reason << "Parse error: wrong numeric literal: '" << *current_ << "'";
-			throw std::runtime_error (reason.str());
-		}
+	if (current_.get_class() == LexerIterator::Classification::Numeric) {
+		integer_t value = current_.get_numeric();
 		++current_;
 		return Node::Value::Ptr (new Node::Value (value));
-	} catch (std::invalid_argument& e) {
-		/* clearly not a value -- continue */
 	}
 
 	/* function or variable */
