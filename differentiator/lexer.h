@@ -17,7 +17,8 @@ public:
 		Whitespace,
 		Numeric,
 		Alphabetical,
-		OpParentheses,
+		OpParenthesisOpening,
+		OpParenthesisClosing,
 		OpArithmetic,
 		OpPowerOperator
 	};

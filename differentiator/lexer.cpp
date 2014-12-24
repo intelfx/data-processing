@@ -1,5 +1,26 @@
 #include "lexer.h"
 
+namespace {
+
+LexerIterator::CachedLexem implicit_multiplication[] = {
+	LexerIterator::CachedLexem ("*", LexerIterator::Classification::OpArithmetic),
+	LexerIterator::CachedLexem()
+};
+
+bool check_implicit_multiplication (LexerIterator::Classification _1, LexerIterator::Classification _2)
+{
+	// '2x', '2(' (not vice versa!)
+	if ((_1 == LexerIterator::Classification::Numeric) &&
+	    ((_2 == LexerIterator::Classification::Alphabetical) ||
+	     (_2 == LexerIterator::Classification::OpParenthesisOpening))) {
+		return true;
+	}
+
+	return false;
+}
+
+} // anonymous namespace
+
 bool LexerIterator::classify_check_next (string::const_iterator it, const char* pattern)
 {
 	while (*pattern) {
@@ -45,8 +66,10 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 			return Classification::OpArithmetic;
 
 		case '(':
+			return Classification::OpParenthesisOpening;
+
 		case ')':
-			return Classification::OpParentheses;
+			return Classification::OpParenthesisClosing;
 		}
 	}
 
@@ -82,7 +105,8 @@ void LexerIterator::next()
 
 	// determine length of current lexem and also optionally fill the cache
 	switch (cl) {
-	case Classification::OpParentheses:
+	case Classification::OpParenthesisOpening:
+	case Classification::OpParenthesisClosing:
 	case Classification::OpArithmetic:
 		current_end_ += 1;
 		break;
@@ -117,6 +141,11 @@ void LexerIterator::next()
 	case Classification::Nothing:
 		cache_.is_valid = true;
 		break;
+	}
+
+	// try to match one of the fake sequences (before we overwrite the previous lexem's class)
+	if (check_implicit_multiplication (cache_.classification, cl)) {
+		fake_sequence_ = implicit_multiplication;
 	}
 
 	// set class
