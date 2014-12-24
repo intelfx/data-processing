@@ -22,20 +22,38 @@ public:
 		OpPowerOperator
 	};
 
-private:
-	string::const_iterator begin_, current_, current_end_, end_;
-
-	struct {
+	struct CachedLexem {
 		string text;
 		integer_t numeric;
 		Classification classification = Classification::Nothing;
 		bool is_valid = false;
-	} cache_;
+
+		CachedLexem() = default;
+
+		CachedLexem (integer_t value)
+		: numeric (value)
+		, classification (Classification::Numeric)
+		, is_valid (true)
+		{ }
+
+		CachedLexem (const char* value, Classification c)
+		: text (value)
+		, classification (c)
+		, is_valid (true)
+		{ }
+	};
+
+private:
+	string::const_iterator begin_, current_, current_end_, end_;
+
+	const CachedLexem* fake_sequence_ = nullptr;
+	CachedLexem cache_;
 
 	bool classify_check_next (string::const_iterator it, const char* pattern);
 	Classification classify (string::const_iterator it);
 	void next();
-	void fill_cache();
+	const CachedLexem* get_cache();
+	const CachedLexem* get_cache_no_fill() const;
 	bool is_end() const;
 
 public:

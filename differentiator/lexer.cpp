@@ -57,6 +57,18 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 
 void LexerIterator::next()
 {
+	// first, try to advance the fake sequence
+	if (fake_sequence_) {
+		++fake_sequence_;
+
+		// check if the sequence has ended; then the actual value (cache_) comes into effect
+		if (fake_sequence_->classification == Classification::Nothing) {
+			fake_sequence_ = nullptr;
+		}
+
+		return;
+	}
+
 	Classification cl;
 
 	cache_.text.clear();
@@ -111,12 +123,29 @@ void LexerIterator::next()
 	cache_.classification = cl;
 }
 
-void LexerIterator::fill_cache()
+const LexerIterator::CachedLexem* LexerIterator::get_cache()
 {
+	if (fake_sequence_) {
+		if (!fake_sequence_->is_valid) {
+			throw std::logic_error ("Fake sequence lexem has invalid cached value");
+		}
+		return fake_sequence_;
+	}
+
 	if (!cache_.is_valid) {
 		cache_.text = std::string (current_, current_end_);
 		cache_.is_valid = true;
 	}
+	return &cache_;
+}
+
+const LexerIterator::CachedLexem* LexerIterator::get_cache_no_fill() const
+{
+	if (fake_sequence_) {
+		return fake_sequence_;
+	}
+
+	return &cache_;
 }
 
 bool LexerIterator::is_end() const
@@ -148,8 +177,7 @@ LexerIterator LexerIterator::operator++(int)
 
 const LexerIterator::string& LexerIterator::operator*()
 {
-	fill_cache();
-	return cache_.text;
+	return get_cache()->text;
 }
 
 const LexerIterator::string* LexerIterator::operator->()
@@ -164,18 +192,20 @@ LexerIterator::operator bool() const
 
 LexerIterator::Classification LexerIterator::get_class() const
 {
-	return cache_.classification;
+	return get_cache_no_fill()->classification;
 }
 
 integer_t LexerIterator::get_numeric() const
 {
-	if (cache_.classification != Classification::Numeric) {
+	const CachedLexem* lexem = get_cache_no_fill();
+
+	if (lexem->classification != Classification::Numeric) {
 		throw std::runtime_error ("Requested numeric value of a non-numeric lexem");
 	}
-	if (!cache_.is_valid) {
+	if (!lexem->is_valid) {
 		throw std::runtime_error ("Numerlc lexem has invalid cached value");
 	}
-	return cache_.numeric;
+	return lexem->numeric;
 }
 
 bool LexerIterator::check (std::initializer_list<string> list, size_t* idx)
