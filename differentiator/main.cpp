@@ -16,6 +16,7 @@ enum {
 	ARG_TERSE_OUTPUT            = 'q',
 	ARG_ADD_VARIABLE            = 'v',
 	ARG_ADD_VARIABLE_FROM_FILE  = 'f',
+	ARG_DERIVATIVE_ORDER        = 'o',
 	ARG_MODE_DIFFERENTIATE      = 'D',
 	ARG_MODE_FIND_ERROR         = 'E',
 	ARG_MODE_SIMPLIFY           = 'S',
@@ -34,6 +35,7 @@ const option option_array[] = {
 	{ "terse",         no_argument,       nullptr, ARG_TERSE_OUTPUT },
 	{ "var",           required_argument, nullptr, ARG_ADD_VARIABLE },
 	{ "var-file",      required_argument, nullptr, ARG_ADD_VARIABLE_FROM_FILE },
+	{ "deriv-order",   required_argument, nullptr, ARG_DERIVATIVE_ORDER },
 	{ "differentiate", required_argument, nullptr, ARG_MODE_DIFFERENTIATE },
 	{ "error",         no_argument,       nullptr, ARG_MODE_FIND_ERROR },
 	{ "simplify",      optional_argument, nullptr, ARG_MODE_SIMPLIFY },
@@ -44,6 +46,7 @@ void usage (const char* name) {
 	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME] [--name-latex NAME]" << std::endl
 	          << "       [-v|--var VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
+	          << "       [-o|--deriv-order ORDER]" << std::endl
 	          << "       [-D|--differentiate VARIABLE] [-E|--error] [-S|--simplify[=VARIABLE]] <EXPRESSION>" << std::endl;
 	exit (EXIT_FAILURE);
 }
@@ -120,6 +123,29 @@ struct Expression
 	}
 };
 
+struct Differential
+{
+	std::string variable;
+	unsigned order;
+	mutable Expression expression;
+
+	Differential (std::string v, unsigned o)
+	: variable (std::move (v))
+	, order (o)
+	{
+	}
+
+	bool operator< (const Differential& rhs) const
+	{
+		return (variable < rhs.variable) || (order < rhs.order);
+	}
+
+	bool operator== (const Differential& rhs) const
+	{
+		return (variable == rhs.variable) && (order == rhs.order);
+	}
+};
+
 } // anonymous namespace
 
 int main (int argc, char** argv)
@@ -155,6 +181,7 @@ int main (int argc, char** argv)
 
 			struct {
 				std::string variable;
+				unsigned order = 1;
 			} differentiate;
 
 			struct {
@@ -172,7 +199,7 @@ int main (int argc, char** argv)
 	 */
 
 	int option;
-	while ((option = getopt_long (argc, argv, "ml:n:qv:f:D:ES:", option_array, nullptr)) != -1) {
+	while ((option = getopt_long (argc, argv, "ml:n:qv:f:o:D:ES:", option_array, nullptr)) != -1) {
 		switch (option) {
 		case ARG_MACHINE_OUTPUT:
 			parameters.output.machine.enabled = true;
@@ -201,14 +228,34 @@ int main (int argc, char** argv)
 
 		case ARG_ADD_VARIABLE: {
 			std::istringstream ss (optarg);
-			configure_exceptions (ss);
 			parse_variable (variables, ss);
+			ss >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Wrong variable specifier: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
 			break;
 		}
 
 		case ARG_ADD_VARIABLE_FROM_FILE:
 			read_variables (optarg);
 			break;
+
+		case ARG_DERIVATIVE_ORDER: {
+			std::istringstream ss (optarg);
+			ss >> parameters.task.differentiate.order >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Could not parse the derivative order: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
+			break;
+		}
 
 		case ARG_MODE_DIFFERENTIATE:
 			assert (parameters.task.type == Task::None);
@@ -317,7 +364,7 @@ int main (int argc, char** argv)
 	/*
 	 * Calculate the differentials and error (if requested).
 	 */
-	std::map<std::string, Expression> differentials;
+	std::set<Differential> differentials;
 
 	/*
 	 * Collect all differentiation variables alongside with placeholders for the differential expressions.
@@ -328,12 +375,12 @@ int main (int argc, char** argv)
 		break;
 
 	case Task::Differentiate:
-		differentials.insert (std::make_pair (parameters.task.differentiate.variable, Expression()));
+		differentials.insert (Differential (parameters.task.differentiate.variable, parameters.task.differentiate.order));
 		break;
 
 	case Task::CalculateError:
 		for (Variable::Map::value_type& var: variables) {
-			differentials.insert (std::make_pair (var.first, Expression()));
+			differentials.insert (Differential (var.first, 1));
 		}
 		break;
 
@@ -347,19 +394,21 @@ int main (int argc, char** argv)
 	 * (FIXME: really? it'd be better to collect usage flags for all variables during parsing.)
 	 */
 
-	for (auto d = differentials.begin(); d != differentials.end(); ) {
-		const std::string& variable = d->first;
-		Expression& differential = d->second;
+	for (auto it = differentials.begin(); it != differentials.end(); ) {
+		const Differential& d = *it;
 
-		differential.tree = differentiate (expression.tree.get(), variable);
+		d.expression.tree = differentiate (expression.tree.get(), d.variable);
+		for (unsigned i = 1; i < d.order; ++i) {
+			d.expression.tree = differentiate (d.expression.tree.get(), d.variable);
+		}
 
-		differential.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential for variable '" << variable << "'").str().c_str());
+		d.expression.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << d.order << " for variable '" << d.variable << "'").str().c_str());
 
-		Node::Value* differential_value = dynamic_cast<Node::Value*> (differential.tree.get());
+		Node::Value* differential_value = dynamic_cast<Node::Value*> (d.expression.tree.get());
 		if (differential_value && (differential_value->value() == 0)) {
-			differentials.erase (d++);
+			differentials.erase (it++);
 		} else {
-			++d;
+			++it;
 		}
 	}
 
@@ -372,11 +421,20 @@ int main (int argc, char** argv)
 	if (parameters.task.type == Task::CalculateError) {
 		Node::AdditionSubtraction::Ptr error_sq_sum (new Node::AdditionSubtraction);
 
-		for (const std::pair<const std::string, Expression>& d: differentials) {
-			auto var = variables.find (d.first);
-			if (var == variables.end()) {
-				throw std::runtime_error (static_cast<std::ostringstream&&> (std::ostringstream() << "Cannot find variable '" << d.first << "' while computing error, despite differential exists").str());;
+		for (const Differential& d: differentials) {
+			if (d.order != 1) {
+				std::ostringstream reason;
+				reason << "Differential for variable '" << d.variable << "' has unexpected order (" << d.order << ") while computing error";
+				throw std::logic_error (reason.str());
 			}
+
+			auto var = variables.find (d.variable);
+			if (var == variables.end()) {
+				std::ostringstream reason;
+				reason << "Cannot find variable '" << d.variable << "' while computing error, despite differential exists";
+				throw std::logic_error (reason.str());
+			}
+
 			Node::Variable::Ptr error (new Node::Variable (var->first, var->second, true));
 
 			if (fp_cmp (error->value(), 0)) {
@@ -385,7 +443,7 @@ int main (int argc, char** argv)
 
 			// dF/dx * error(x)
 			Node::MultiplicationDivision::Ptr partial (new Node::MultiplicationDivision);
-			partial->add_child (d.second.tree->clone(), false);
+			partial->add_child (d.expression.tree->clone(), false);
 			partial->add_child (std::move (error), false);
 
 			// (dF/dx * error(x))^2
@@ -434,13 +492,22 @@ int main (int argc, char** argv)
 
 		std::cerr << "Partial derivatives:" << std::endl;
 
-		for (const std::pair<const std::string, Expression>& d: differentials) {
-			std::string name = "d" + parameters.output.common.name + "/d" + d.first;
+		for (const Differential& d: differentials) {
+			std::string name;
+
+			if (d.order == 1) {
+				name = "d" + parameters.output.common.name + "/d" + d.variable;
+			} else {
+				std::ostringstream builder;
+				builder << "d^" << d.order << parameters.output.common.name << "/d" << d.variable << "^" << d.order;
+				name = builder.str();
+			}
+
 			print_expression_aligned (std::cerr,
 			                          name,
-			                          d.second.tree.get(),
+			                          d.expression.tree.get(),
 			                          nullptr,
-			                          d.second.value_ptr());
+			                          d.expression.value_ptr());
 
 			std::cerr << std::endl;
 		}
@@ -495,12 +562,23 @@ int main (int argc, char** argv)
 		                       true,
 		                       expression.value_ptr());
 
-		for (const std::pair<const std::string, Expression>& d: differentials) {
-			latex_document->print ("\\frac {\\partial " + Visitor::LaTeX::prepare_name (parameters.output.latex.name) + "}"
-			                             " {\\partial " + Visitor::LaTeX::prepare_name (d.first) + "}",
-			                       d.second.tree.get(),
+		for (const Differential& d: differentials) {
+			std::string name;
+
+			if (d.order == 1) {
+				name = "\\frac {\\partial " + Visitor::LaTeX::prepare_name (parameters.output.latex.name) + "}"
+			                 " {\\partial " + Visitor::LaTeX::prepare_name (d.variable) + "}";
+			} else {
+				std::ostringstream builder;
+				builder << "\\frac {\\partial ^ {" << d.order << "} " << Visitor::LaTeX::prepare_name (parameters.output.latex.name) << "}"
+				        <<        "{\\partial " << d.variable << " ^ {" << d.order << "} }";
+				name = builder.str();
+			}
+
+			latex_document->print (name,
+			                       d.expression.tree.get(),
 			                       true,
-			                       d.second.value_ptr());
+			                       d.expression.value_ptr());
 		}
 
 		if (parameters.task.type == Task::CalculateError) {
