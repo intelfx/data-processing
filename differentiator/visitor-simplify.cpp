@@ -236,7 +236,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 		/* we have at least one non-constant node.
 		 * add the constant (as the first child) if needed */
 		if (result_value != 0) {
-			result->add_child (Node::Base::Ptr (new Node::Value (result_value)), false);
+			result->add_child_front (Node::Base::Ptr (new Node::Value (result_value)), false);
 		}
 
 		/* if we still have only one child, try to get rid of our node entirely */
