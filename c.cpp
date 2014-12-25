@@ -12,7 +12,7 @@ int main (int argc, char** argv)
 		          << "Usage: " << argv[0] << " <N> <K1> [K2]" << std::endl;
 	}
 
-	data_t N;
+	rational_t N;
 	int Ka[2];
 	std::istringstream (argv[1]) >> N;
 	std::istringstream (argv[2]) >> Ka[0];
