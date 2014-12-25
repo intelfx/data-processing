@@ -510,7 +510,9 @@ int main (int argc, char** argv)
 
 		std::cerr << std::endl;
 
-		std::cerr << "Partial derivatives:" << std::endl;
+		if (!differentials.empty()) {
+			std::cerr << "Partial derivatives:" << std::endl;
+		}
 
 		for (const Differential& d: differentials) {
 			std::string name;
