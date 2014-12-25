@@ -54,15 +54,19 @@ Node::Base::Ptr simplify_tree (Node::Base* tree, const std::string& partial_vari
 	           ->accept_ptr (optimizer);
 }
 
-Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable)
+Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable, unsigned int order /* = 1 */)
 {
 	Visitor::Simplify simplifier;
 	Visitor::Optimize optimizer;
 	Visitor::Differentiate differentiator (partial_variable);
 
-	return tree->accept_ptr (simplifier)
-	           ->accept_ptr (optimizer)
-	           ->accept_ptr (differentiator)
-	           ->accept_ptr (simplifier)
-	           ->accept_ptr (optimizer);
+	Node::Base::Ptr ret = tree->accept_ptr (simplifier)
+	                          ->accept_ptr (optimizer);
+
+	for (unsigned i = 0; i < order; ++i) {
+		ret = ret->accept_ptr (differentiator);
+	}
+
+	return ret->accept_ptr (simplifier)
+	          ->accept_ptr (optimizer);
 }

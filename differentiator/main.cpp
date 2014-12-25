@@ -397,11 +397,7 @@ int main (int argc, char** argv)
 	for (auto it = differentials.begin(); it != differentials.end(); ) {
 		const Differential& d = *it;
 
-		d.expression.tree = differentiate (expression.tree.get(), d.variable);
-		for (unsigned i = 1; i < d.order; ++i) {
-			d.expression.tree = differentiate (d.expression.tree.get(), d.variable);
-		}
-
+		d.expression.tree = differentiate (expression.tree.get(), d.variable, d.order);
 		d.expression.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << d.order << " for variable '" << d.variable << "'").str().c_str());
 
 		Node::Value* differential_value = dynamic_cast<Node::Value*> (d.expression.tree.get());

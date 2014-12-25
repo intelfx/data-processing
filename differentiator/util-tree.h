@@ -23,4 +23,4 @@ void read_variables (const char* path);
 
 Node::Base::Ptr simplify_tree (Node::Base* tree);
 Node::Base::Ptr simplify_tree (Node::Base* tree, const std::string& partial_variable);
-Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable);
+Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_variable, unsigned order = 1);
