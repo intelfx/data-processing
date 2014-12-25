@@ -19,9 +19,12 @@ enum {
 	ARG_ADD_VARIABLE_NO_VALUE   = 'b',
 	ARG_ADD_VARIABLE_FROM_FILE  = 'f',
 	ARG_DERIVATIVE_ORDER        = 'o',
+	ARG_SERIES_LENGTH           = 's',
+	ARG_SERIES_POINT            = 'p',
 	ARG_MODE_DIFFERENTIATE      = 'D',
 	ARG_MODE_FIND_ERROR         = 'E',
 	ARG_MODE_SIMPLIFY           = 'S',
+	ARG_MODE_TAYLOR_SERIES      = 'T',
 	ARG_MACHINE_OUTPUT_VAR_NAME = 0x100,
 	ARG_LATEX_OUTPUT_VAR_NAME,
 };
@@ -40,9 +43,12 @@ const option option_array[] = {
 	{ "var-bare",      required_argument, nullptr, ARG_ADD_VARIABLE_NO_VALUE },
 	{ "var-file",      required_argument, nullptr, ARG_ADD_VARIABLE_FROM_FILE },
 	{ "deriv-order",   required_argument, nullptr, ARG_DERIVATIVE_ORDER },
+	{ "series-length", required_argument, nullptr, ARG_SERIES_LENGTH },
+	{ "series-point",  required_argument, nullptr, ARG_SERIES_POINT },
 	{ "differentiate", required_argument, nullptr, ARG_MODE_DIFFERENTIATE },
 	{ "error",         no_argument,       nullptr, ARG_MODE_FIND_ERROR },
 	{ "simplify",      optional_argument, nullptr, ARG_MODE_SIMPLIFY },
+	{ "taylor-series", required_argument, nullptr, ARG_MODE_TAYLOR_SERIES },
 	{ }
 };
 
@@ -50,8 +56,8 @@ void usage (const char* name) {
 	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME] [--name-latex NAME]" << std::endl
 	          << "       [-v|--var VARIABLE ...] [-r|--var-frac VARIABLE ...] [-b|--var-bare VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
-	          << "       [-o|--deriv-order ORDER]" << std::endl
-	          << "       [-D|--differentiate VARIABLE] [-E|--error] [-S|--simplify[=VARIABLE]] <EXPRESSION>" << std::endl;
+	          << "       [-o|--deriv-order ORDER] [-s|--series-length LENGTH] [-p|--series-point VALUE]" << std::endl
+	          << "       [-D|--differentiate VARIABLE] [-E|--error] [-S|--simplify[=VARIABLE]] [-T|--taylor-series VARIABLE] <EXPRESSION>" << std::endl;
 	exit (EXIT_FAILURE);
 }
 
@@ -142,7 +148,8 @@ int main (int argc, char** argv)
 		None = 0,
 		Differentiate,
 		CalculateError,
-		Simplify
+		Simplify,
+		Series
 	};
 
 	struct {
@@ -175,6 +182,12 @@ int main (int argc, char** argv)
 			struct {
 				std::string variable;
 			} simplify;
+
+			struct {
+				std::string variable;
+				unsigned length = 1;
+				rational_t point = 0;
+			} series;
 		} task;
 
 		std::string expression;
@@ -187,7 +200,7 @@ int main (int argc, char** argv)
 	 */
 
 	int option;
-	while ((option = getopt_long (argc, argv, "ml:n:qv:r:b:f:o:D:ES:", option_array, nullptr)) != -1) {
+	while ((option = getopt_long (argc, argv, "ml:n:qv:r:b:f:o:s:p:D:ES:T:", option_array, nullptr)) != -1) {
 		switch (option) {
 		case ARG_MACHINE_OUTPUT:
 			parameters.output.machine.enabled = true;
@@ -273,6 +286,32 @@ int main (int argc, char** argv)
 			break;
 		}
 
+		case ARG_SERIES_LENGTH: {
+			std::istringstream ss (optarg);
+			ss >> parameters.task.series.length >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Could not parse the series length: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
+			break;
+		}
+
+		case ARG_SERIES_POINT: {
+			std::istringstream ss (optarg);
+			ss >> parameters.task.series.point >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Could not parse the series point: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
+			break;
+		}
+
 		case ARG_MODE_DIFFERENTIATE:
 			assert (parameters.task.type == Task::None);
 			parameters.task.type = Task::Differentiate;
@@ -290,6 +329,12 @@ int main (int argc, char** argv)
 			if (optarg && optarg[0]) {
 				parameters.task.simplify.variable = optarg;
 			}
+			break;
+
+		case ARG_MODE_TAYLOR_SERIES:
+			assert (parameters.task.type == Task::None);
+			parameters.task.type = Task::Series;
+			parameters.task.series.variable = optarg;
 			break;
 
 		default:
@@ -310,7 +355,7 @@ int main (int argc, char** argv)
 	}
 
 	if (parameters.task.type == Task::None) {
-		std::cerr << "One of operation modes ('-D', '-E' or '-S') is expected." << std::endl;
+		std::cerr << "One of operation modes ('-D', '-E', '-S' or '-T') is expected." << std::endl;
 		usage (argv[0]);
 	}
 
@@ -402,6 +447,15 @@ int main (int argc, char** argv)
 		differentials.insert (Differential (parameters.task.differentiate.variable, parameters.task.differentiate.order));
 		break;
 
+	case Task::Series:
+		/*
+		 * in case of Task::Series, we won't be inserting N differentials for the same variable
+		 * because this will cause each i-th order differential to be calculated (N-i) times.
+		 * We'll do this at the next step, incrementally calculating each differential
+		 * using the previous one.
+		 */
+		break;
+
 	case Task::CalculateError:
 		for (Variable::Map::value_type& var: variables) {
 			differentials.insert (Differential (var.first, 1));
@@ -484,6 +538,122 @@ int main (int argc, char** argv)
 	}
 
 	/*
+	 * Build and compute the Taylor series (if requested).
+	 * Well, for now it is the Maclaurin...
+	 */
+
+	Expression series;
+
+	if (parameters.task.type == Task::Series) {
+		auto var = variables.find (parameters.task.series.variable);
+		if (var == variables.end()) {
+			std::ostringstream reason;
+			reason << "Cannot find variable '" << parameters.task.series.variable << "' while computing Taylor series";
+			throw std::runtime_error (reason.str());
+		}
+
+		Node::AdditionSubtraction::Ptr sum (new Node::AdditionSubtraction);
+		Visitor::Calculate calculator;
+		Expression derivative;
+		integer_t denominator = 1;
+		unsigned current_order = 0;
+
+		/*
+		 * FIXME: allow Expression to operate on trees owned by someone else.
+		 */
+
+		derivative.tree = expression.tree->clone();
+
+		/*
+		 * Set the temporary value for the function variable while differentiating.
+		 */
+
+		boost::any original_variable_value = var->second.value;
+		var->second.value = parameters.task.series.point;
+
+		if (parameters.task.series.point != 0) {
+			std::ostringstream reason;
+			reason << "Sorry, unimplemented: building the Taylor series for non-zero point " << parameters.task.series.point;
+			throw std::runtime_error (reason.str());
+		}
+
+		for (;;) {
+
+			/*
+			 * Add the next term to the Taylor series, if it is non-zero.
+			 */
+
+			derivative.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << current_order << " for variable '" << parameters.task.series.variable << "'").str().c_str());
+
+			if (!any_isa<rational_t> (derivative.value)) {
+				std::ostringstream reason;
+				reason << "Cannot build the Taylor series: derivative of order " << current_order << " is not rational or cannot be computed";
+				throw std::runtime_error (reason.str());
+			}
+
+			rational_t multiplier = any_to_rational (derivative.value) / denominator;
+
+			if (multiplier.numerator() != 0) {
+				Node::Base::Ptr term (new Node::Value (multiplier));
+
+				if (current_order > 0) {
+					Node::MultiplicationDivision::Ptr product (new Node::MultiplicationDivision);
+
+					product->add_child (std::move (term), false);
+
+					Node::Base::Ptr variable (Node::Base::Ptr (new Node::Variable (var->first, var->second, false)));
+
+					if (current_order > 1) {
+						Node::Power::Ptr power (new Node::Power);
+
+						power->add_child (std::move (variable));
+						power->add_child (Node::Base::Ptr (new Node::Value (current_order)));
+
+						variable = std::move (power);
+					}
+
+					product->add_child (std::move (variable), false);
+
+					term = std::move (product);
+				}
+
+				sum->add_child (std::move (term), false);
+			}
+
+			/*
+			 * Check if the series has enough length.
+			 */
+
+			if (current_order == parameters.task.series.length) {
+				break;
+			}
+
+			/*
+			 * Build the next derivative.
+			 */
+
+			derivative.tree = differentiate (derivative.tree.get(), parameters.task.series.variable);
+
+			++current_order;
+			denominator *= current_order;
+		}
+
+		/*
+		 * Restore the variable's value.
+		 */
+
+		var->second.value = original_variable_value;
+
+		/*
+		 * Finally simplify, save and compute the Taylor series.
+		 */
+
+		series.tree = simplify_tree (sum.get());
+
+		series.compute ("expression Taylor series");
+	}
+
+	/*
 	 * Init various printers and output engines.
 	 */
 
@@ -546,8 +716,20 @@ int main (int argc, char** argv)
 
 			std::cerr << std::endl;
 		}
-	} else {
 
+		if (parameters.task.type == Task::Series) {
+			std::cerr << "Series:" << std::endl;
+
+			std::string name = "T(" + parameters.output.common.name + ")";
+			print_expression_aligned (std::cerr,
+			                          name,
+			                          series.tree.get(),
+			                          nullptr,
+			                          series.value);
+
+			std::cerr << std::endl;
+		}
+	} else {
 		std::cerr << parameters.output.common.name << "(...) = ";
 
 		print_expression_terse (std::cerr,
@@ -609,6 +791,13 @@ int main (int argc, char** argv)
 			                       true,
 			                       error.value);
 		}
+
+		if (parameters.task.type == Task::Series) {
+			latex_document->print ("T(" + parameters.output.latex.name + ")",
+			                       series.tree.get(),
+			                       true,
+			                       series.value);
+		}
 	}
 
 	/*
@@ -616,10 +805,16 @@ int main (int argc, char** argv)
 	 */
 
 	if (parameters.output.machine.enabled) {
-		std::cout << parameters.output.machine.name << " " << (expression.value.empty() ? any_to_fp (expression.value) : NAN);
+		if (parameters.task.type == Task::Series) {
+			// Per the task requirement
+			print_expression_terse (std::cout, series.tree.get());
+		} else {
+			std::cout << parameters.output.machine.name << " " << (expression.value.empty() ? any_to_fp (expression.value) : NAN);
 
-		if (parameters.task.type == Task::CalculateError) {
-			std::cout << " " << (error.value.empty() ? any_to_fp (error.value) : NAN);
+			if (parameters.task.type == Task::CalculateError) {
+				std::cout << " " << (error.value.empty() ? any_to_fp (error.value) : NAN);
+			}
+
 		}
 
 		std::cout << std::endl;
