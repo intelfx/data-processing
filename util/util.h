@@ -17,6 +17,7 @@
 
 #ifndef IN_KDEVELOP_PARSER
 #include <boost/rational.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #endif // IN_KDEVELOP_PARSER
 
 #include <boost/any.hpp>
@@ -26,7 +27,7 @@
  */
 
 typedef long double data_t;
-typedef long integer_t;
+typedef boost::multiprecision::cpp_int integer_t;
 typedef boost::rational<integer_t> rational_t;
 
 /*
