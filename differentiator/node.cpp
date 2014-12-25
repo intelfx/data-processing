@@ -17,6 +17,11 @@ Value::Value (rational_t value)
 {
 }
 
+Value::Value (integer_t value)
+: value_ (value)
+{
+}
+
 Variable::Variable (const std::string& name, const ::Variable& variable, bool is_error)
 : name_ (name)
 , variable_ (variable)
@@ -92,7 +97,7 @@ rational_t MultiplicationDivision::get_constant_value()
 	if (constant.first) {
 		return calculate_constant_value (constant);
 	} else {
-		return 1;
+		return rational_t (1);
 	}
 }
 
@@ -105,7 +110,7 @@ rational_t MultiplicationDivision::get_constant_value_and_release()
 		release_constant();
 		return result;
 	} else {
-		return 1;
+		return rational_t (1);
 	}
 }
 

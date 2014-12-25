@@ -97,7 +97,7 @@ struct DisassembledNode
 
 DisassembledNode disassemble_muldiv (const Node::Base::Ptr& node, bool negate)
 {
-	DisassembledNode result { 1, node->clone() };
+	DisassembledNode result { rational_t (1), node->clone() };
 
 	Node::MultiplicationDivision* result_muldiv = dynamic_cast<Node::MultiplicationDivision*> (result.subtree.get());
 	if (result_muldiv) {
@@ -225,7 +225,7 @@ void Simplify::simplify_nested_nodes (rational_t& result_value, Node::AdditionSu
 
 boost::any Simplify::visit (Node::AdditionSubtraction& node)
 {
-	rational_t result_value = 0;
+	rational_t result_value (0);
 	Node::AdditionSubtraction::Ptr result;
 
 	simplify_nested_nodes (result_value, result, node, false);
@@ -246,7 +246,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 				Node::MultiplicationDivision* child_muldiv = dynamic_cast<Node::MultiplicationDivision*> (child.get());
 				if (child_muldiv) {
 					/* mul-div nodes have a constant which can be multiplied by -1 */
-					child_muldiv->insert_constant (-1);
+					child_muldiv->insert_constant (rational_t (-1));
 					return static_cast<Node::Base*> (child.release());
 				}
 			} else {
@@ -264,7 +264,7 @@ boost::any Simplify::visit (Node::AdditionSubtraction& node)
 
 DisassembledNode disassemble_power (const Node::Base::Ptr& node, bool reciprocate)
 {
-	DisassembledNode result { 1, node->clone() };
+	DisassembledNode result { rational_t (1), node->clone() };
 
 	Node::Power* result_power = dynamic_cast<Node::Power*> (result.subtree.get());
 	if (result_power) {
@@ -390,7 +390,7 @@ void Simplify::simplify_nested_nodes (rational_t& result_value, Node::Multiplica
 
 boost::any Simplify::visit (Node::MultiplicationDivision& node)
 {
-	rational_t result_value = 1;
+	rational_t result_value (1);
 	Node::MultiplicationDivision::Ptr result;
 
 	simplify_nested_nodes (result_value, result, node, false);

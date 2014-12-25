@@ -186,7 +186,7 @@ int main (int argc, char** argv)
 			struct {
 				std::string variable;
 				unsigned length = 1;
-				rational_t point = 0;
+				rational_t point = rational_t (0);
 			} series;
 		} task;
 

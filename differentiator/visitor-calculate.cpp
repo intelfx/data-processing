@@ -50,7 +50,7 @@ boost::any Calculate::visit (Node::Power& node)
 
 boost::any Calculate::visit (Node::AdditionSubtraction& node)
 {
-	rational_t result_r = 0;
+	rational_t result_r (0);
 	data_t result_f;
 	bool is_rational = true;
 
@@ -85,7 +85,7 @@ boost::any Calculate::visit (Node::AdditionSubtraction& node)
 
 boost::any Calculate::visit (Node::MultiplicationDivision& node)
 {
-	rational_t result_r = 1;
+	rational_t result_r (1);
 	data_t result_f;
 	bool is_rational = true;
 

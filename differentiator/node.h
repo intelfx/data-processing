@@ -95,6 +95,7 @@ public:
 	typedef std::unique_ptr<Value> Ptr;
 
 	Value (rational_t value);
+	Value (integer_t value);
 
 	rational_t value() const { return value_; }
 	void set_value (rational_t value) { value_ = value; }
