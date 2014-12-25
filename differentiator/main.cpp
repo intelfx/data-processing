@@ -15,6 +15,8 @@ enum {
 	ARG_GLOBAL_VAR_NAME         = 'n',
 	ARG_TERSE_OUTPUT            = 'q',
 	ARG_ADD_VARIABLE            = 'v',
+	ARG_ADD_VARIABLE_FRAC       = 'r',
+	ARG_ADD_VARIABLE_NO_VALUE   = 'b',
 	ARG_ADD_VARIABLE_FROM_FILE  = 'f',
 	ARG_DERIVATIVE_ORDER        = 'o',
 	ARG_MODE_DIFFERENTIATE      = 'D',
@@ -34,6 +36,8 @@ const option option_array[] = {
 	{ "name-latex",    required_argument, nullptr, ARG_LATEX_OUTPUT_VAR_NAME },
 	{ "terse",         no_argument,       nullptr, ARG_TERSE_OUTPUT },
 	{ "var",           required_argument, nullptr, ARG_ADD_VARIABLE },
+	{ "var-frac",      required_argument, nullptr, ARG_ADD_VARIABLE_FRAC },
+	{ "var-bare",      required_argument, nullptr, ARG_ADD_VARIABLE_NO_VALUE },
 	{ "var-file",      required_argument, nullptr, ARG_ADD_VARIABLE_FROM_FILE },
 	{ "deriv-order",   required_argument, nullptr, ARG_DERIVATIVE_ORDER },
 	{ "differentiate", required_argument, nullptr, ARG_MODE_DIFFERENTIATE },
@@ -45,13 +49,13 @@ const option option_array[] = {
 void usage (const char* name) {
 	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME] [--name-latex NAME]" << std::endl
-	          << "       [-v|--var VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
+	          << "       [-v|--var VARIABLE ...] [-r|--var-frac VARIABLE ...] [-b|--var-bare VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
 	          << "       [-o|--deriv-order ORDER]" << std::endl
 	          << "       [-D|--differentiate VARIABLE] [-E|--error] [-S|--simplify[=VARIABLE]] <EXPRESSION>" << std::endl;
 	exit (EXIT_FAILURE);
 }
 
-void print_expression_aligned (std::ostream& out, const std::string& name, Node::Base* tree, Node::Base* simplified, const data_t* value)
+void print_expression_aligned (std::ostream& out, const std::string& name, Node::Base* tree, Node::Base* simplified, const boost::any& value)
 {
 	static Visitor::Print print_symbolic (out, false),
 	                      print_substitute (out, true);
@@ -65,8 +69,8 @@ void print_expression_aligned (std::ostream& out, const std::string& name, Node:
 	out << align << "" << " = "; (simplified ? simplified : tree)->accept (print_substitute); out << " =" << std::endl;
 
 	out << align << "" << " = ";
-	if (value) {
-		out << *value;
+	if (!value.empty()) {
+		any_to_ostream (out, value);
 	} else {
 		out << "(could not compute)";
 	}
@@ -80,10 +84,10 @@ void print_expression_terse (std::ostream& out, Node::Base* tree)
 	tree->accept (print_symbolic);
 }
 
-void print_value_terse (std::ostream& out, const data_t* value)
+void print_value_terse (std::ostream& out, const boost::any& value)
 {
-	if (value) {
-		out << *value;
+	if (!value.empty()) {
+		any_to_ostream (out, value);
 	} else {
 		out << "(could not compute)";
 	}
@@ -92,33 +96,17 @@ void print_value_terse (std::ostream& out, const data_t* value)
 struct Expression
 {
 	Node::Base::Ptr tree;
-	data_t value;
-	bool value_computed;
-
-	Expression()
-	: value_computed (false)
-	{
-	}
+	boost::any value;
 
 	void compute (const char* explanation)
 	{
 		static Visitor::Calculate calculate;
 
-		try {
-			value = tree->accept_value (calculate);
-			value_computed = true;
-		} catch (std::exception& e) {
-			std::cerr << "Warning: could not compute " << explanation << " (" << e.what() << ")" << std::endl
-			          << std::endl;
-		}
-	}
+		value = tree->accept (calculate);
 
-	const data_t* value_ptr() const
-	{
-		if (value_computed) {
-			return &value;
-		} else {
-			return nullptr;
+		if (value.empty()) {
+			std::cerr << "Warning: could not compute " << explanation << std::endl
+			          << std::endl;
 		}
 	}
 };
@@ -199,7 +187,7 @@ int main (int argc, char** argv)
 	 */
 
 	int option;
-	while ((option = getopt_long (argc, argv, "ml:n:qv:f:o:D:ES:", option_array, nullptr)) != -1) {
+	while ((option = getopt_long (argc, argv, "ml:n:qv:r:b:f:o:D:ES:", option_array, nullptr)) != -1) {
 		switch (option) {
 		case ARG_MACHINE_OUTPUT:
 			parameters.output.machine.enabled = true;
@@ -228,7 +216,7 @@ int main (int argc, char** argv)
 
 		case ARG_ADD_VARIABLE: {
 			std::istringstream ss (optarg);
-			parse_variable (variables, ss);
+			parse_variable<data_t> (variables, ss);
 			ss >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
@@ -240,8 +228,36 @@ int main (int argc, char** argv)
 			break;
 		}
 
+		case ARG_ADD_VARIABLE_FRAC: {
+			std::istringstream ss (optarg);
+			parse_variable<rational_t> (variables, ss);
+			ss >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Wrong rational variable specifier: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
+			break;
+		}
+
+		case ARG_ADD_VARIABLE_NO_VALUE: {
+			std::istringstream ss (optarg);
+			parse_variable<void> (variables, ss);
+			ss >> std::ws;
+
+			if (ss.fail() || !ss.eof()) {
+				std::ostringstream reason;
+				reason << "Wrong bare variable specifier: '" << optarg << "'";
+				throw std::runtime_error (reason.str());
+			}
+
+			break;
+		}
+
 		case ARG_ADD_VARIABLE_FROM_FILE:
-			read_variables (optarg);
+			parse_variables_from_file<data_t> (variables, optarg);
 			break;
 
 		case ARG_DERIVATIVE_ORDER: {
@@ -327,8 +343,16 @@ int main (int argc, char** argv)
 		auto align = std::setw (name.length());
 
 		std::cerr << name << " = " << parameters.expression << std::endl;
+
 		for (Variable::Map::value_type& var: variables) {
-			std::cerr << align << var.first << " = " << var.second.value << " ± " << var.second.error << std::endl;
+			std::cerr << align << var.first;
+			if (!var.second.value.empty()) {
+				std::cerr << " = "; any_to_ostream (std::cerr, var.second.value);
+			}
+			if (!var.second.no_error()) {
+				std::cerr << " ± "; any_to_ostream (std::cerr, var.second.error);
+			}
+			std::cerr << std::endl;
 		}
 
 		std::cerr << std::endl;
@@ -431,11 +455,11 @@ int main (int argc, char** argv)
 				throw std::logic_error (reason.str());
 			}
 
-			Node::Variable::Ptr error (new Node::Variable (var->first, var->second, true));
-
-			if (fp_cmp (error->value(), 0)) {
+			if (var->second.no_error()) {
 				continue;
 			}
+
+			Node::Variable::Ptr error (new Node::Variable (var->first, var->second, true));
 
 			// dF/dx * error(x)
 			Node::MultiplicationDivision::Ptr partial (new Node::MultiplicationDivision);
@@ -482,7 +506,7 @@ int main (int argc, char** argv)
 		                          expression_raw.get(),
 		                          expression_simplified ? expression.tree.get()
 		                                                : nullptr,
-		                          expression.value_ptr());
+		                          expression.value);
 
 		std::cerr << std::endl;
 
@@ -503,7 +527,7 @@ int main (int argc, char** argv)
 			                          name,
 			                          d.expression.tree.get(),
 			                          nullptr,
-			                          d.expression.value_ptr());
+			                          d.expression.value);
 
 			std::cerr << std::endl;
 		}
@@ -516,7 +540,7 @@ int main (int argc, char** argv)
 			                          name,
 			                          error.tree.get(),
 			                          nullptr,
-			                          error.value_ptr());
+			                          error.value);
 
 			std::cerr << std::endl;
 		}
@@ -530,13 +554,13 @@ int main (int argc, char** argv)
 		std::cerr << " = ";
 
 		print_value_terse (std::cerr,
-		                   expression.value_ptr());
+		                   expression.value);
 
 		if (parameters.task.type == Task::CalculateError) {
 			std::cerr << " ± ";
 
 			print_value_terse (std::cerr,
-			                   error.value_ptr());
+			                   error.value);
 		}
 
 		std::cerr << std::endl;
@@ -556,7 +580,7 @@ int main (int argc, char** argv)
 		latex_document->print (parameters.output.latex.name,
 		                       expression.tree.get(),
 		                       true,
-		                       expression.value_ptr());
+		                       expression.value);
 
 		for (const Differential& d: differentials) {
 			std::string name;
@@ -574,14 +598,14 @@ int main (int argc, char** argv)
 			latex_document->print (name,
 			                       d.expression.tree.get(),
 			                       true,
-			                       d.expression.value_ptr());
+			                       d.expression.value);
 		}
 
 		if (parameters.task.type == Task::CalculateError) {
 			latex_document->print ("\\sigma " + parameters.output.latex.name,
 			                       error.tree.get(),
 			                       true,
-			                       error.value_ptr());
+			                       error.value);
 		}
 	}
 
@@ -590,10 +614,10 @@ int main (int argc, char** argv)
 	 */
 
 	if (parameters.output.machine.enabled) {
-		std::cout << parameters.output.machine.name << " " << (expression.value_computed ? expression.value : NAN);
+		std::cout << parameters.output.machine.name << " " << (expression.value.empty() ? any_to_fp (expression.value) : NAN);
 
 		if (parameters.task.type == Task::CalculateError) {
-			std::cout << " " << (error.value_computed ? error.value : NAN);
+			std::cout << " " << (error.value.empty() ? any_to_fp (error.value) : NAN);
 		}
 
 		std::cout << std::endl;

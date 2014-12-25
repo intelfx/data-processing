@@ -22,20 +22,6 @@ void insert_constants()
 	variables.insert (Variable::make ("g", 9.81, 0, true));
 }
 
-/*
- * Populates the variable definition list by reading a file.
- */
-
-void read_variables (const char* path)
-{
-	std::ifstream variable_file;
-	open (variable_file, path);
-
-	while (!(variable_file >> std::ws, variable_file.eof())) {
-		parse_variable (variables, variable_file);
-	}
-}
-
 Node::Base::Ptr simplify_tree (Node::Base* tree)
 {
 	Visitor::Optimize optimizer;

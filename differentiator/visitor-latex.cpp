@@ -9,6 +9,36 @@ const std::string border_width = "2pt";
 const std::string extra_left_border_width = "0pt";
 const std::string varwidth_limit = "30cm";
 
+void rational_to_latex (std::ostream& out, const rational_t& obj)
+{
+	if (obj.denominator() == 1) {
+		out << obj.numerator();
+	} else {
+		out << "\\frac {" << obj.numerator() << "} {" << obj.denominator() << "}";
+	}
+}
+
+void any_to_latex (std::ostream& out, const boost::any& obj)
+{
+	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		rational_to_latex (out, *val);
+	} else {
+		data_t value = boost::any_cast<data_t> (obj);
+
+		std::ostringstream ss;
+		ss << value;
+
+		std::string str = ss.str();
+
+		if (str.find ('e') != std::string::npos) {
+			std::regex exponent_replace_re ("e(-)?0*([0-9]*)", std::regex::extended);
+			out << "(" << std::regex_replace (str, exponent_replace_re, " * 10^{\\1\\2}", std::regex_constants::format_sed) << ")";
+		} else {
+			out << str;
+		}
+	}
+}
+
 } // anonymous namespace
 
 namespace Visitor
@@ -90,11 +120,12 @@ void LaTeX::Document::print_expression (Node::Base* tree, Base& visitor)
 	stream_ << " & ="; tree->accept (visitor);
 }
 
-void LaTeX::Document::print_value (data_t value)
+void LaTeX::Document::print_value (const boost::any& value)
 {
 	write_linebreaks();
 
-	stream_ << " & =" << prepare_value (value);
+	stream_ << " & =";
+	any_to_latex (stream_, value);
 }
 
 void LaTeX::Document::write_equation_footer()
@@ -104,7 +135,7 @@ void LaTeX::Document::write_equation_footer()
 	stream_ << "\\intertext{" << std::endl;
 }
 
-void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, const data_t* value)
+void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, const boost::any& value)
 {
 	LaTeX printer_literal (stream_, false),
 	      printer_substituting (stream_, true);
@@ -117,8 +148,8 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool sub
 		print_expression (tree, printer_substituting);
 	}
 
-	if (value) {
-		print_value (*value);
+	if (!value.empty()) {
+		print_value (value);
 	}
 
 	write_equation_footer();
@@ -139,19 +170,15 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, Node::Ba
 boost::any LaTeX::visit (Node::Value& node)
 {
 	// stream_ << prepare_value (node.value());
-	if (node.value().denominator() == 1) {
-		stream_ << node.value().numerator();
-	} else {
-		stream_ << "\\frac {" << node.value().numerator() << "} {" << node.value().denominator() << "}";
-	}
+	rational_to_latex (stream_, node.value());
 
 	return boost::any();
 }
 
 boost::any LaTeX::visit (Node::Variable& node)
 {
-	if (substitute_ && node.can_be_substituted()) {
-		stream_ << prepare_value (node.value());
+	if (substitute_ && node.can_be_substituted() && !node.value().empty()) {
+		any_to_latex (stream_, node.value());
 	} else {
 		if (node.is_error()) {
 			stream_ << "\\sigma ";
@@ -278,22 +305,6 @@ std::string LaTeX::prepare_name (const std::string& name)
 	}
 
 	return result;
-}
-
-std::string LaTeX::prepare_value (data_t value)
-{
-	std::ostringstream ss;
-	ss << value;
-
-	std::string str = ss.str();
-
-	if (str.find ('e') != std::string::npos) {
-		std::regex exponent_replace_re ("e(-)?0*([0-9]*)", std::regex::extended);
-		return "(" + std::regex_replace (str, exponent_replace_re, " * 10^{\\1\\2}", std::regex_constants::format_sed) + ")";
-	} else {
-		return str;
-	}
-
 }
 
 } // namespace Visitor

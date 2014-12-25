@@ -10,13 +10,20 @@ void Value::Dump (std::ostream& str) const
 
 void Variable::Dump (std::ostream& str) const
 {
-	str << name_ << " [" << variable_.value;
+	str << name_;
 
-	if (!variable_.no_error()) {
-		str << " ± " << variable_.error;
+	if (!variable_.value.empty()) {
+		str << " [";
+
+		any_to_ostream (str, variable_.value);
+
+		if (!variable_.no_error()) {
+			str << " ± ";
+			any_to_ostream (str, variable_.error);
+		}
+
+		str << "]";
 	}
-
-	str << "]";
 }
 
 void Function::Dump (std::ostream& str) const

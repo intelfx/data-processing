@@ -35,7 +35,6 @@ public:
 	virtual bool compare (const Ptr& rhs) const = 0;
 
 	Node::Base::Ptr accept_ptr (Visitor::Base& visitor) { return Node::Base::Ptr (boost::any_cast<Node::Base*> (accept (visitor))); }
-	data_t accept_value (Visitor::Base& visitor) { return boost::any_cast<data_t> (accept (visitor)); }
 
 	friend std::ostream& operator<< (std::ostream& out, const Base& node);
 };
@@ -121,7 +120,7 @@ public:
 
 	const std::string& name() const { return name_; }
 	std::string pretty_name() const { return is_error_ ? "Δ" + name_ : name_;  }
-	data_t value() const { return is_error_ ? variable_.error : variable_.value; }
+	boost::any value() const { return is_error_ ? variable_.error : variable_.value; }
 
 	bool is_error() const { return is_error_; }
 	bool is_target_variable (const std::string& desired) const { return !is_error_ && (name_ == desired); }

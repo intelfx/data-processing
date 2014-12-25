@@ -22,13 +22,13 @@ public:
 		void write_equation_footer();
 
 		void print_expression (Node::Base* tree, Visitor::Base& visitor);
-		void print_value (data_t value);
+		void print_value (const boost::any& value);
 
 	public:
 		Document (const char* file);
 		~Document();
 
-		void print (const std::string& name, Node::Base* tree, bool substitute, const data_t* value);
+		void print ( const std::string& name, Node::Base* tree, bool substitute, const boost::any& value );
 		void print (const std::string& name, Node::Base* tree, Node::Base* simplified);
 	};
 
@@ -42,7 +42,6 @@ public:
     virtual boost::any visit (Node::MultiplicationDivision& node);
 
 	static std::string prepare_name (const std::string& name);
-	static std::string prepare_value (data_t value);
 };
 
 } // namespace Visitor

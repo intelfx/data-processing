@@ -19,6 +19,8 @@
 #include <boost/rational.hpp>
 #endif // IN_KDEVELOP_PARSER
 
+#include <boost/any.hpp>
+
 /*
  * Numeric: data types
  */
@@ -149,4 +151,66 @@ template <typename T>
 inline T sq (T val)
 {
 	return val * val;
+}
+
+/*
+ * Numeric: an integer power operator.
+ */
+
+inline integer_t pow_int (integer_t base, integer_t exponent)
+{
+	integer_t result = 1;
+	for (integer_t i = 0; i < exponent; ++i) {
+		result *= base;
+	}
+	return result;
+}
+
+inline rational_t pow_frac (rational_t base, integer_t exponent)
+{
+	if (exponent >= 0) {
+		return rational_t (pow_int (base.numerator(), exponent),
+		                   pow_int (base.denominator(), exponent));
+	} else {
+		return rational_t (pow_int (base.denominator(), -exponent),
+		                   pow_int (base.numerator(), -exponent));
+	}
+}
+
+template <typename T>
+inline bool any_isa (const boost::any& obj)
+{
+	return obj.type() == boost::typeindex::type_id<T>().type_info();
+}
+
+inline rational_t any_to_rational (const boost::any& obj)
+{
+	return boost::any_cast<rational_t> (obj);
+}
+
+inline data_t any_to_fp (const boost::any& obj)
+{
+	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		return to_fp (*val);
+	} else {
+		return boost::any_cast<data_t> (obj);
+	}
+}
+
+inline void rational_to_ostream (std::ostream& out, const rational_t& obj)
+{
+	if (obj.denominator() == 1) {
+		out << obj.numerator();
+	} else {
+		out << obj;
+	}
+}
+
+inline void any_to_ostream (std::ostream& out, const boost::any& obj)
+{
+	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		rational_to_ostream (out, *val);
+	} else {
+		out << boost::any_cast<data_t> (obj);
+	}
 }

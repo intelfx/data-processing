@@ -4,7 +4,7 @@ namespace Visitor {
 
 boost::any Calculate::visit (Node::Value& node)
 {
-	return to_fp (node.value());
+	return node.value();
 }
 
 boost::any Calculate::visit (Node::Variable& node)
@@ -29,40 +29,93 @@ boost::any Calculate::visit (Node::Power& node)
 
 	auto child = node.children().begin();
 
-	data_t base = (*child++)->accept_value (*this),
-	       exponent = (*child++)->accept_value (*this);
+	boost::any base = (*child++)->accept (*this),
+	           exponent = (*child++)->accept (*this);
 
-	return powl (base, exponent);
+	if (base.empty() || exponent.empty()) {
+		return boost::any();
+	} else if (any_isa<rational_t> (base) &&
+	           any_isa<rational_t> (exponent)) {
+		rational_t exponent_r = any_to_rational (exponent);
+
+		// only attempt rational calculations if we do not need to take roots
+		if (exponent_r.denominator() == 1) {
+			return pow_frac (any_to_rational (base), exponent_r.numerator());
+		}
+		// otherwise fall through to real-number calculations
+	}
+
+	return powl (any_to_fp (base), any_to_fp (exponent));
 }
 
 boost::any Calculate::visit (Node::AdditionSubtraction& node)
 {
-	data_t result = 0;
+	rational_t result_r = 0;
+	data_t result_f;
+	bool is_rational = true;
 
 	for (auto& child: node.children()) {
-		if (child.tag.negated) {
-			result -= child.node->accept_value (*this);
+		boost::any next = child.node->accept (*this);
+
+		if (next.empty()) {
+			return boost::any();
+		} else if (is_rational && any_isa<rational_t> (next)) {
+			if (child.tag.negated) {
+				result_r -= any_to_rational (next);
+			} else {
+				result_r += any_to_rational (next);
+			}
 		} else {
-			result += child.node->accept_value (*this);
+			if (is_rational) {
+				result_f = to_fp (result_r);
+				is_rational = false;
+			}
+
+			if (child.tag.negated) {
+				result_f -= any_to_fp (next);
+			} else {
+				result_f += any_to_fp (next);
+			}
 		}
 	}
 
-	return result;
+	return is_rational ? boost::any (result_r)
+	                   : boost::any (result_f);
 }
 
 boost::any Calculate::visit (Node::MultiplicationDivision& node)
 {
-	data_t result = 1;
+	rational_t result_r = 1;
+	data_t result_f;
+	bool is_rational = true;
 
 	for (auto& child: node.children()) {
-		if (child.tag.reciprocated) {
-			result /= child.node->accept_value (*this);
+		boost::any next = child.node->accept (*this);
+
+		if (next.empty()) {
+			return boost::any();
+		} else if (is_rational && any_isa<rational_t> (next)) {
+			if (child.tag.reciprocated) {
+				result_r /= any_to_rational (next);
+			} else {
+				result_r *= any_to_rational (next);
+			}
 		} else {
-			result *= child.node->accept_value (*this);
+			if (is_rational) {
+				result_f = to_fp (result_r);
+				is_rational = false;
+			}
+
+			if (child.tag.reciprocated) {
+				result_f /= any_to_fp (next);
+			} else {
+				result_f *= any_to_fp (next);
+			}
 		}
 	}
 
-	return result;
+	return is_rational ? boost::any (result_r)
+	                   : boost::any (result_f);
 }
 
 } // namespace Visitor

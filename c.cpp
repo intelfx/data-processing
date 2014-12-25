@@ -52,8 +52,8 @@ int main (int argc, char** argv)
 
 		std::cout << "(" << N << " " << K << ") = "; fraction->accept (printer); std::cout << std::endl;
 
-		data_t value = fraction->accept_value (calculate);
+		boost::any value = fraction->accept (calculate);
 
-		doc.print (static_cast<std::ostringstream&&> (std::ostringstream() << "\\dbinom {" << N << "} {" << K << "}").str(), fraction.get(), true, &value);
+		doc.print (static_cast<std::ostringstream&&> (std::ostringstream() << "\\dbinom {" << N << "} {" << K << "}").str(), fraction.get(), true, value);
 	}
 }

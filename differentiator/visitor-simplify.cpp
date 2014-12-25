@@ -18,11 +18,15 @@ boost::any Simplify::visit (Node::Value& node)
 
 boost::any Simplify::visit (Node::Variable& node)
 {
-	if (simplification_variable_.empty() || node.is_target_variable (simplification_variable_)) {
-		return static_cast<Node::Base*> (node.clone().release());
-	} else {
-		return static_cast<Node::Base*> (new Node::Value (node.value()));
+	// we substitute if both 1) variable is eligible for substitution and 2) it holds a rational value
+	if (!simplification_variable_.empty() && !node.is_target_variable (simplification_variable_)) {
+		boost::any value = node.value();
+		if (any_isa<rational_t> (value)) {
+			return static_cast<Node::Base*> (new Node::Value (any_to_rational (value)));
+		}
 	}
+
+	return static_cast<Node::Base*> (node.clone().release());
 }
 
 boost::any Simplify::visit (Node::Function& node)
@@ -44,9 +48,9 @@ boost::any Simplify::visit (Node::Power& node)
 	Node::MultiplicationDivision* base_muldiv = dynamic_cast<Node::MultiplicationDivision*> (base.get());
 	Node::Power* base_power = dynamic_cast<Node::Power*> (base.get());
 
-	/* if (base_value && exponent_value) {
-		return static_cast<Node::Base*> (new Node::Value (powl (base_value->value(), exponent_value->value())));
-	} else */ if (base_value && (base_value->value() == 0)) {
+	if (base_value && exponent_value && (exponent_value->value().denominator() == 1)) {
+		return static_cast<Node::Base*> (new Node::Value (pow_frac (base_value->value(), exponent_value->value().numerator())));
+	} else if (base_value && (base_value->value() == 0)) {
 		return static_cast<Node::Base*> (new Node::Value (0));
 	} else if (base_value && (base_value->value() == 1)) {
 		return static_cast<Node::Base*> (new Node::Value (1));

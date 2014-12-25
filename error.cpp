@@ -13,9 +13,13 @@ typedef data_t(*Func)();
  * Defines a single variable with name, value, error and mode of error application.
  */
 
-struct AugmentedVariable : Variable
+struct AugmentedVariable
 {
 	std::string name;
+	data_t value, error;
+
+	bool no_error() const { return fabsl (error) < eps; }
+
 	enum Mode
 	{
 		NONE = 0,
@@ -29,7 +33,6 @@ struct AugmentedVariable : Variable
 	{
 		AugmentedVariable v;
 		in >> v.name >> v.value >> v.error;
-		v.do_not_substitute = false;
 		v.mode = NONE;
 		return v;
 	}
