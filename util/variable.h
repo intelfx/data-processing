@@ -29,7 +29,7 @@ inline Variable::Map::value_type Variable::read (std::istream& in)
 {
 	std::string name;
 	T value, error;
-	in >> name >> value >> error;
+	in >> name >> std::ws >> value >> std::ws >> error >> std::ws; // work around bugs in boost::multiprecision or boost::rational or clang
 	return Map::value_type { name, Variable { value, error, false } };
 }
 
