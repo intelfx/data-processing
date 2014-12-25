@@ -146,30 +146,28 @@ void Simplify::fold_with_children (Node::AdditionSubtraction::Ptr& result, Node:
 		return;
 	}
 
-	/* Verify that we have any nodes to attempt folding with. */
-	if (!result) {
-		return;
-	}
-
 	/* disassemble (node; node_negation) into a constant and a subtree. */
 	DisassembledNode node_data = disassemble_muldiv (node, node_negation);
 	bool node_data_changed = false;
 
-	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
-		DisassembledNode child_data = disassemble_muldiv (child->node, child->tag.negated);
+	/* Verify that we have any nodes to attempt folding with. */
+	if (result) {
+		for (auto child = result->children().begin(); child != result->children().end(); ++child) {
+			DisassembledNode child_data = disassemble_muldiv (child->node, child->tag.negated);
 
-		if (child_data.subtree->compare (node_data.subtree)) {
-			/* Subtrees match.
-			 * Do the folding (sum up constants). */
-			node_data.constant += child_data.constant;
+			if (child_data.subtree->compare (node_data.subtree)) {
+				/* Subtrees match.
+				* Do the folding (sum up constants). */
+				node_data.constant += child_data.constant;
 
-			/* Mark the node for rebuilding. */
-			node_data_changed = true;
+				/* Mark the node for rebuilding. */
+				node_data_changed = true;
 
-			/* Erase the second node participated in folding.
-			 * Iterator becomes invalid - exit the loop. */
-			result->children().erase (child);
-			break;
+				/* Erase the second node participated in folding.
+				* Iterator becomes invalid - exit the loop. */
+				result->children().erase (child);
+				break;
+			}
 		}
 	}
 
@@ -313,30 +311,28 @@ void Simplify::fold_with_children (Node::MultiplicationDivision::Ptr& result, No
 		return;
 	}
 
-	/* Verify that we have any nodes to attempt folding with. */
-	if (!result) {
-		return;
-	}
-
 	/* disassemble (node; node_negation) into a constant and a subtree. */
 	DisassembledNode node_data = disassemble_power (node, node_reciprocation);
 	bool node_data_changed = false;
 
-	for (auto child = result->children().begin(); child != result->children().end(); ++child) {
-		DisassembledNode child_data = disassemble_power (child->node, child->tag.reciprocated);
+	/* Verify that we have any nodes to attempt folding with. */
+	if (result) {
+		for (auto child = result->children().begin(); child != result->children().end(); ++child) {
+			DisassembledNode child_data = disassemble_power (child->node, child->tag.reciprocated);
 
-		if (child_data.subtree->compare (node_data.subtree)) {
-			/* Subtrees match.
-			 * Do the folding (sum up constants). */
-			node_data.constant += child_data.constant;
+			if (child_data.subtree->compare (node_data.subtree)) {
+				/* Subtrees match.
+				* Do the folding (sum up constants). */
+				node_data.constant += child_data.constant;
 
-			/* Mark the node for rebuilding. */
-			node_data_changed = true;
+				/* Mark the node for rebuilding. */
+				node_data_changed = true;
 
-			/* Erase the second node participated in folding.
-			 * Iterator becomes invalid - end the loop immediately. */
-			result->children().erase (child);
-			break;
+				/* Erase the second node participated in folding.
+				* Iterator becomes invalid - end the loop immediately. */
+				result->children().erase (child);
+				break;
+			}
 		}
 	}
 
