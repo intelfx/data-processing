@@ -11,6 +11,7 @@ enum {
 	ARG_LATEX_OUTPUT            = 'l',
 	ARG_GLOBAL_VAR_NAME         = 'n',
 	ARG_TERSE_OUTPUT            = 'q',
+	ARG_NO_OUTPUT               = 'Q',
 	ARG_ADD_VARIABLE            = 'v',
 	ARG_ADD_VARIABLE_FRAC       = 'r',
 	ARG_ADD_VARIABLE_NO_VALUE   = 'b',
@@ -35,6 +36,7 @@ const option option_array[] = {
 	{ "name-machine",  required_argument, nullptr, ARG_MACHINE_OUTPUT_VAR_NAME },
 	{ "name-latex",    required_argument, nullptr, ARG_LATEX_OUTPUT_VAR_NAME },
 	{ "terse",         no_argument,       nullptr, ARG_TERSE_OUTPUT },
+	{ "really-quiet",  no_argument,       nullptr, ARG_NO_OUTPUT },
 	{ "var",           required_argument, nullptr, ARG_ADD_VARIABLE },
 	{ "var-frac",      required_argument, nullptr, ARG_ADD_VARIABLE_FRAC },
 	{ "var-bare",      required_argument, nullptr, ARG_ADD_VARIABLE_NO_VALUE },
@@ -50,7 +52,7 @@ const option option_array[] = {
 };
 
 void usage (const char* name) {
-	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse]" << std::endl
+	std::cerr << "Usage: " << name << " [-m|--machine] [-l|--latex FILE] [-q|--terse] [-Q|--really-quiet]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME] [--name-latex NAME]" << std::endl
 	          << "       [-v|--var VARIABLE ...] [-r|--var-frac VARIABLE ...] [-b|--var-bare VARIABLE ...] [-f|--var-file FILE ...]" << std::endl
 	          << "       [-o|--deriv-order ORDER] [-s|--series-length LENGTH] [-p|--series-point VALUE]" << std::endl
@@ -101,13 +103,13 @@ struct Expression
 	Node::Base::Ptr tree;
 	boost::any value;
 
-	void compute (const char* explanation)
+	void compute (const char* explanation, bool quiet)
 	{
 		static Visitor::Calculate calculate;
 
 		value = tree->accept (calculate);
 
-		if (value.empty()) {
+		if (value.empty() && !quiet) {
 			std::cerr << "Warning: could not compute " << explanation << std::endl
 			          << std::endl;
 		}
@@ -164,6 +166,7 @@ int main (int argc, char** argv)
 
 			struct {
 				bool terse;
+				bool quiet;
 				std::string name;
 			} common;
 		} output;
@@ -222,6 +225,10 @@ int main (int argc, char** argv)
 
 		case ARG_TERSE_OUTPUT:
 			parameters.output.common.terse = true;
+			break;
+
+		case ARG_NO_OUTPUT:
+			parameters.output.common.quiet = true;
 			break;
 
 		case ARG_ADD_VARIABLE: {
@@ -374,6 +381,10 @@ int main (int argc, char** argv)
 		parameters.output.machine.name = parameters.output.common.name;
 	}
 
+	if (parameters.output.common.quiet) {
+		parameters.output.common.terse = true;
+	}
+
 	/*
 	 * Dump the input data to stderr (if not quiet).
 	 */
@@ -425,7 +436,7 @@ int main (int argc, char** argv)
 
 	expression_simplified = !expression.tree->compare (expression_raw);
 
-	expression.compute ("expression value");
+	expression.compute ("expression value", parameters.output.common.quiet);
 
 	/*
 	 * Calculate the differentials and error (if requested).
@@ -473,7 +484,7 @@ int main (int argc, char** argv)
 		const Differential& d = *it;
 
 		d.expression.tree = differentiate (expression.tree.get(), d.variable, d.order);
-		d.expression.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << d.order << " for variable '" << d.variable << "'").str().c_str());
+		d.expression.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << d.order << " for variable '" << d.variable << "'").str().c_str(), parameters.output.common.quiet);
 
 		Node::Value* differential_value = dynamic_cast<Node::Value*> (d.expression.tree.get());
 		if (differential_value && (differential_value->value() == 0)) {
@@ -531,7 +542,7 @@ int main (int argc, char** argv)
 
 		error.tree = simplify_tree (error_sqrt.get());
 
-		error.compute ("expression error value");
+		error.compute ("expression error value", parameters.output.common.quiet);
 	}
 
 	/*
@@ -580,7 +591,7 @@ int main (int argc, char** argv)
 			 * Add the next term to the Taylor series, if it is non-zero.
 			 */
 
-			derivative.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << current_order << " for variable '" << parameters.task.series.variable << "'").str().c_str());
+			derivative.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << current_order << " for variable '" << parameters.task.series.variable << "'").str().c_str(), parameters.output.common.quiet);
 
 			if (!any_isa<rational_t> (derivative.value)) {
 				std::ostringstream reason;
@@ -647,7 +658,7 @@ int main (int argc, char** argv)
 
 		series.tree = simplify_tree (sum.get());
 
-		series.compute ("expression Taylor series");
+		series.compute ("expression Taylor series", parameters.output.common.quiet);
 	}
 
 	/*
@@ -726,7 +737,7 @@ int main (int argc, char** argv)
 
 			std::cerr << std::endl;
 		}
-	} else {
+	} else if (!parameters.output.common.quiet) {
 		std::cerr << parameters.output.common.name << "(...) = ";
 
 		print_expression_terse (std::cerr,
@@ -811,9 +822,10 @@ int main (int argc, char** argv)
 			if (parameters.task.type == Task::CalculateError) {
 				std::cout << " " << (error.value.empty() ? any_to_fp (error.value) : NAN);
 			}
-
 		}
 
 		std::cout << std::endl;
 	}
+
+	return 0;
 }
