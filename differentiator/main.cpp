@@ -75,7 +75,7 @@ void print_expression_aligned (std::ostream& out, const std::string& name, Node:
 
 	out << align << "" << " = ";
 	if (!value.empty()) {
-		any_to_ostream (out, value);
+		any_to_ostream_to_fp (out, value);
 	} else {
 		out << "(could not compute)";
 	}
@@ -92,7 +92,7 @@ void print_expression_terse (std::ostream& out, Node::Base* tree)
 void print_value_terse (std::ostream& out, const boost::any& value)
 {
 	if (!value.empty()) {
-		any_to_ostream (out, value);
+		any_to_ostream_to_fp (out, value);
 	} else {
 		out << "(could not compute)";
 	}
@@ -400,10 +400,10 @@ int main (int argc, char** argv)
 		for (Variable::Map::value_type& var: variables) {
 			std::cerr << align << var.first;
 			if (!var.second.value.empty()) {
-				std::cerr << " = "; any_to_ostream (std::cerr, var.second.value);
+				std::cerr << " = "; any_to_ostream_to_fp (std::cerr, var.second.value);
 			}
 			if (!var.second.no_error()) {
-				std::cerr << " ± "; any_to_ostream (std::cerr, var.second.error);
+				std::cerr << " ± "; any_to_ostream_to_fp (std::cerr, var.second.error);
 			}
 			std::cerr << std::endl;
 		}

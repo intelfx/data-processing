@@ -18,24 +18,38 @@ void rational_to_latex (std::ostream& out, const rational_t& obj)
 	}
 }
 
+void fp_to_latex (std::ostream& out, data_t value)
+{
+	std::ostringstream ss;
+	ss << value;
+
+	std::string str = ss.str();
+
+	if (str.find ('e') != std::string::npos) {
+		std::regex exponent_replace_re ("e(-)?0*([0-9]*)", std::regex::extended);
+		out << "(" << std::regex_replace (str, exponent_replace_re, " * 10^{\\1\\2}", std::regex_constants::format_sed) << ")";
+	} else {
+		out << str;
+	}
+}
+
 void any_to_latex (std::ostream& out, const boost::any& obj)
 {
 	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
 		rational_to_latex (out, *val);
 	} else {
-		data_t value = boost::any_cast<data_t> (obj);
+		fp_to_latex (out, any_to_fp (obj));
+	}
+}
 
-		std::ostringstream ss;
-		ss << value;
-
-		std::string str = ss.str();
-
-		if (str.find ('e') != std::string::npos) {
-			std::regex exponent_replace_re ("e(-)?0*([0-9]*)", std::regex::extended);
-			out << "(" << std::regex_replace (str, exponent_replace_re, " * 10^{\\1\\2}", std::regex_constants::format_sed) << ")";
-		} else {
-			out << str;
-		}
+void any_to_latex_to_fp (std::ostream& out, const boost::any& obj)
+{
+	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		rational_to_latex (out, *val);
+		out << " \\approx ";
+		fp_to_latex (out, to_fp (*val));
+	} else {
+		fp_to_latex (out, any_to_fp (obj));
 	}
 }
 
@@ -125,7 +139,7 @@ void LaTeX::Document::print_value (const boost::any& value)
 	write_linebreaks();
 
 	stream_ << " & =";
-	any_to_latex (stream_, value);
+	any_to_latex_to_fp (stream_, value);
 }
 
 void LaTeX::Document::write_equation_footer()
@@ -169,7 +183,6 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, Node::Ba
 
 boost::any LaTeX::visit (Node::Value& node)
 {
-	// stream_ << prepare_value (node.value());
 	rational_to_latex (stream_, node.value());
 
 	return boost::any();

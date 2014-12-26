@@ -218,3 +218,13 @@ inline void any_to_ostream (std::ostream& out, const boost::any& obj)
 		out << boost::any_cast<data_t> (obj);
 	}
 }
+
+inline void any_to_ostream_to_fp (std::ostream& out, const boost::any& obj)
+{
+	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		rational_to_ostream (out, *val);
+		out << " ≈ " << to_fp (*val);
+	} else {
+		out << boost::any_cast<data_t> (obj);
+	}
+}
