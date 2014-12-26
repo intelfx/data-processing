@@ -3,8 +3,6 @@
 #include <differentiator/visitor-print.h>
 #include <differentiator/visitor-latex.h>
 
-#include "sstream"
-
 int main (int argc, char** argv)
 {
 	if (argc < 3 || argc > 4) {

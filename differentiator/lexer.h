@@ -2,9 +2,6 @@
 
 #include <util/util.h>
 
-#include <initializer_list>
-#include <cctype>
-
 class LexerIterator : public std::iterator<std::forward_iterator_tag, std::string>
 {
 public:

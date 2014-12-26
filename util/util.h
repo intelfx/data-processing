@@ -3,9 +3,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 #include <iterator>
 #include <utility>
 
+#include <initializer_list>
 #include <algorithm>
 #include <numeric>
 #include <vector>
@@ -14,6 +16,7 @@
 #include <set>
 #include <cmath>
 #include <cstdlib>
+#include <cassert>
 
 #ifndef IN_KDEVELOP_PARSER
 #include <boost/rational.hpp>

@@ -5,9 +5,6 @@
 #include "visitor-latex.h"
 
 #include <getopt.h>
-#include <cassert>
-
-#include <iomanip>
 
 enum {
 	ARG_MACHINE_OUTPUT          = 'm',

@@ -1,5 +1,7 @@
 #include "lexer.h"
 
+#include <cctype>
+
 namespace {
 
 LexerIterator::CachedLexem implicit_multiplication[] = {
