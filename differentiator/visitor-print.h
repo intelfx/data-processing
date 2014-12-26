@@ -11,6 +11,7 @@ protected:
 	bool substitute_;
 
 	boost::any parenthesized_visit (Node::Base& node, Node::Base::Ptr& child);
+	void maybe_print_multiplication (Node::Base::Ptr& child);
 
 public:
 	Print (std::ostream& stream, bool substitute);

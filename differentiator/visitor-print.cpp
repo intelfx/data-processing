@@ -25,6 +25,16 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 	return ret;
 }
 
+void Print::maybe_print_multiplication (Node::Base::Ptr& child)
+{
+	/* elide multiplication sign only we're outputting symbolic variable names */
+	if (substitute_ || dynamic_cast<Node::Value*> (child.get())) {
+		stream_ << " * ";
+	} else {
+		stream_ << " ";
+	}
+}
+
 boost::any Print::visit (Node::Value& node)
 {
 	rational_to_ostream (stream_, node.value());
@@ -105,7 +115,7 @@ boost::any Print::visit (Node::MultiplicationDivision& node)
 			if (child.tag.reciprocated) {
 				stream_ << " / ";
 			} else if (!first) {
-				stream_ << " * ";
+				maybe_print_multiplication (child.node);
 			}
 		}
 		parenthesized_visit (node, child.node);

@@ -244,13 +244,7 @@ boost::any LaTeX::visit (Node::MultiplicationDivision& node)
 			if (child.tag.reciprocated) {
 				stream_ << "} {";
 			} else {
-				/* elide multiplication sign only we're outputting symbolic variable names */
-				if (substitute_ ||
-				    dynamic_cast<Node::Value*> (child.node.get())) {
-					stream_ << " * ";
-				} else {
-					stream_ << " ";
-				}
+				maybe_print_multiplication (child.node);
 			}
 		}
 
