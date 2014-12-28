@@ -5,6 +5,16 @@ namespace Visitor {
 Print::Print (std::ostream& stream, bool substitute)
 : stream_ (stream)
 , substitute_ (substitute)
+, paren_left_ ("(")
+, paren_right_ (")")
+{
+}
+
+Print::Print (std::ostream& stream, bool substitute, std::string paren_left, std::string paren_right)
+: stream_ (stream)
+, substitute_ (substitute)
+, paren_left_ (std::move (paren_left))
+, paren_right_ (std::move (paren_right))
 {
 }
 
@@ -13,13 +23,13 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 	bool need_parentheses = (child->priority() <= parent.priority());
 
 	if (need_parentheses) {
-		stream_ << "(";
+		stream_ << paren_left_;
 	}
 
 	boost::any ret = child->accept (*this);
 
 	if (need_parentheses) {
-		stream_ << ")";
+		stream_ << paren_right_;
 	}
 
 	return ret;

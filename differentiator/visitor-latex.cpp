@@ -103,7 +103,7 @@ void LaTeX::Document::write_footer()
 }
 
 LaTeX::LaTeX (std::ostream& stream, bool substitute)
-: Print (stream, substitute)
+: Print (stream, substitute, "\\left(", "\\right)")
 {
 }
 
