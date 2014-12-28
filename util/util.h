@@ -184,7 +184,7 @@ inline rational_t pow_frac (rational_t base, integer_t exponent)
 template <typename T>
 inline bool any_isa (const boost::any& obj)
 {
-	return obj.type() == boost::typeindex::type_id<T>().type_info();
+	return obj.type() == typeid (T);
 }
 
 inline rational_t any_to_rational (const boost::any& obj)
