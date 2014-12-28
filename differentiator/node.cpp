@@ -34,111 +34,145 @@ Function::Function (const std::string& name)
 {
 }
 
-std::pair<Value*, MultiplicationDivisionTag*> MultiplicationDivision::get_constant()
+rational_t Power::get_exponent_constant (bool release)
 {
-	std::pair<Value*, MultiplicationDivisionTag*> result (nullptr, nullptr);
+	rational_t result;
+	Node::MultiplicationDivision* exponent_muldiv = dynamic_cast<Node::MultiplicationDivision*> (exponent_.get());
+	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent_.get());
 
-	if (!children_.empty() &&
-	    (result.first = dynamic_cast<Value*> (children_.front().node.get()))) {
-		result.second = &children_.front().tag;
+	if (exponent_muldiv) {
+		result = exponent_muldiv->get_constant (release);
+		exponent_muldiv->decay_assign (exponent_);
+	} else if (exponent_value) {
+		result = exponent_value->value();
+		if (release) {
+			exponent_value->set_value (rational_t (1));
+		}
+	} else {
+		result = rational_t (1);
 	}
 
 	return result;
 }
 
-void MultiplicationDivision::release_constant()
+void Power::insert_exponent_constant (rational_t value)
 {
-	children_.pop_front();
-}
+	Node::MultiplicationDivision* exponent_muldiv = dynamic_cast<Node::MultiplicationDivision*> (exponent_.get());
+	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent_.get());
 
-void MultiplicationDivision::release_constant_if_exists()
-{
-	if (!children_.empty() &&
-	    (dynamic_cast<Value*> (children_.front().node.get()))) {
-		release_constant();
-	}
-}
-
-std::pair<Value*, MultiplicationDivisionTag*> MultiplicationDivision::create_constant()
-{
-	std::pair<Value*, MultiplicationDivisionTag*> result;
-
-	result.first = new Value (1);
-	add_child_front (Base::Ptr (result.first), false);
-	result.second = &children_.front().tag;
-
-	return result;
-}
-
-std::pair<Value*, MultiplicationDivisionTag*> MultiplicationDivision::get_or_create_constant()
-{
-	auto result = get_constant();
-
-	if (result.first) {
-		return result;
+	if (exponent_muldiv) {
+		exponent_muldiv->insert_constant (value);
+	} else if (exponent_value) {
+		exponent_value->set_value (exponent_value->value() * value);
+	} else if (exponent_) {
+		Node::MultiplicationDivision::Ptr new_exponent_muldiv (new Node::MultiplicationDivision);
+		new_exponent_muldiv->insert_constant (value);
+		new_exponent_muldiv->add_child (std::move (exponent_), false);
+		exponent_ = std::move (new_exponent_muldiv);
 	} else {
-		return create_constant();
+		exponent_ = Node::Base::Ptr (new Node::Value (value));
 	}
 }
 
-rational_t MultiplicationDivision::calculate_constant_value (const std::pair<Value*, MultiplicationDivisionTag*> constant)
+Base::Ptr Power::decay_move (Base::Ptr&& self)
 {
-	if (constant.second->reciprocated) {
-		return 1 / constant.first->value();
+	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent_.get());
+	if (exponent_value &&
+	    (exponent_value->value() == 1)) {
+		return std::move (base_);
 	} else {
-		return constant.first->value();
+		return std::move (self);
 	}
 }
 
-rational_t MultiplicationDivision::get_constant_value()
+void Power::decay_assign (Base::Ptr& dest)
 {
-	auto constant = get_constant();
-
-	if (constant.first) {
-		return calculate_constant_value (constant);
-	} else {
-		return rational_t (1);
+	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent_.get());
+	if (exponent_value &&
+	    (exponent_value->value() == 1)) {
+		dest = std::move (base_);
 	}
 }
 
-rational_t MultiplicationDivision::get_constant_value_and_release()
+Base::Ptr AdditionSubtraction::decay_move (Base::Ptr&& self)
 {
-	auto constant = get_constant();
+	auto it = children().begin();
 
-	if (constant.first) {
-		rational_t result = calculate_constant_value (constant);
-		release_constant();
-		return result;
+	if ((std::next (it) == children().end()) &&
+	    !it->tag.negated) {
+		return take_set (children(), it).node;
 	} else {
-		return rational_t (1);
+		return std::move (self);
 	}
+}
+
+void AdditionSubtraction::decay_assign (Base::Ptr& dest)
+{
+	auto it = children().begin();
+
+	if ((std::next (it) == children().end()) &&
+	    !it->tag.negated) {
+		dest = take_set (children(), it).node;
+	}
+}
+
+rational_t MultiplicationDivision::get_constant (bool release)
+{
+	const Value* node = nullptr;
+	rational_t value (1);
+
+	if (!children_.empty()) {
+		auto iter = children_.begin();
+
+		node = dynamic_cast<const Value*> (iter->node.get());
+		if (node) {
+			if (iter->tag.reciprocated) {
+				value = 1 / node->value();
+			} else {
+				value = node->value();
+			}
+
+			if (release) {
+				children_.erase (iter);
+			}
+		}
+	}
+
+	return value;
 }
 
 void MultiplicationDivision::insert_constant (rational_t value)
 {
-	auto constant = get_constant();
+	rational_t constant = get_constant (true) * value;
 
-	/* Multiply/divide by existing constant (if it exists) */
-	if (constant.first) {
-		if (constant.second->reciprocated) {
-			value /= constant.first->value();
-		} else {
-			value *= constant.first->value();
-		}
+	if (constant != 1) {
+		add_child (Value::Ptr (new Node::Value (constant)), false);
 	}
+}
 
-	if (value != 1) {
-		/* Write the new constant (creating it if it doesn't exist) */
-		if (!constant.first) {
-			constant = create_constant();
-		}
-		constant.first->set_value (value);
-		constant.second->reciprocated = false;
+Base::Ptr MultiplicationDivision::decay_move (Base::Ptr&& self)
+{
+	auto it = children().begin();
+
+	if (it == children_.end()) {
+		return Base::Ptr();
+	} else if ((std::next (it) == children_.end()) &&
+	           !it->tag.reciprocated) {
+		return take_set (children_, it).node;
 	} else {
-		/* Release the existing constant (== write 1) */
-		if (constant.first) {
-			release_constant();
-		}
+		return std::move (self);
+	}
+}
+
+void MultiplicationDivision::decay_assign (Base::Ptr& dest)
+{
+	auto it = children().begin();
+
+	if (it == children_.end()) {
+		dest.reset();
+	} else if ((std::next (it) == children_.end()) &&
+	           !it->tag.reciprocated) {
+		dest = take_set (children(), it).node;
 	}
 }
 
@@ -148,5 +182,12 @@ IMPLEMENT_ACCEPTOR (Function);
 IMPLEMENT_ACCEPTOR (Power);
 IMPLEMENT_ACCEPTOR (AdditionSubtraction);
 IMPLEMENT_ACCEPTOR (MultiplicationDivision);
+
+IMPLEMENT_GET_TYPE (Value);
+IMPLEMENT_GET_TYPE (Variable);
+IMPLEMENT_GET_TYPE (Function);
+IMPLEMENT_GET_TYPE (Power);
+IMPLEMENT_GET_TYPE (AdditionSubtraction);
+IMPLEMENT_GET_TYPE (MultiplicationDivision);
 
 } // namespace Node

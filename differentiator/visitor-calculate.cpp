@@ -2,35 +2,27 @@
 
 namespace Visitor {
 
-boost::any Calculate::visit (Node::Value& node)
+boost::any Calculate::visit (const Node::Value& node)
 {
 	return node.value();
 }
 
-boost::any Calculate::visit (Node::Variable& node)
+boost::any Calculate::visit (const Node::Variable& node)
 {
 	return node.value();
 }
 
-boost::any Calculate::visit (Node::Function& node)
+boost::any Calculate::visit (const Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Calculate error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any Calculate::visit (Node::Power& node)
+boost::any Calculate::visit (const Node::Power& node)
 {
-	if (node.children().size() != 2) {
-		std::ostringstream reason;
-		reason << "Calculate error: power node has " << node.children().size() << " children";
-		throw std::logic_error (reason.str());
-	}
-
-	auto child = node.children().begin();
-
-	boost::any base = (*child++)->accept (*this),
-	           exponent = (*child++)->accept (*this);
+	boost::any base = node.get_base()->accept (*this),
+	           exponent = node.get_exponent()->accept (*this);
 
 	if (base.empty() || exponent.empty()) {
 		return boost::any();
@@ -48,7 +40,7 @@ boost::any Calculate::visit (Node::Power& node)
 	return powl (any_to_fp (base), any_to_fp (exponent));
 }
 
-boost::any Calculate::visit (Node::AdditionSubtraction& node)
+boost::any Calculate::visit (const Node::AdditionSubtraction& node)
 {
 	rational_t result_r (0);
 	data_t result_f;
@@ -83,7 +75,7 @@ boost::any Calculate::visit (Node::AdditionSubtraction& node)
 	                   : boost::any (result_f);
 }
 
-boost::any Calculate::visit (Node::MultiplicationDivision& node)
+boost::any Calculate::visit (const Node::MultiplicationDivision& node)
 {
 	rational_t result_r (1);
 	data_t result_f;

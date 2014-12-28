@@ -18,7 +18,7 @@ Print::Print (std::ostream& stream, bool substitute, std::string paren_left, std
 {
 }
 
-boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& child)
+boost::any Print::parenthesized_visit (const Node::Base& parent, const Node::Base::Ptr& child)
 {
 	bool need_parentheses = (child->priority() <= parent.priority());
 
@@ -35,7 +35,7 @@ boost::any Print::parenthesized_visit (Node::Base& parent, Node::Base::Ptr& chil
 	return ret;
 }
 
-void Print::maybe_print_multiplication (Node::Base::Ptr& child)
+void Print::maybe_print_multiplication (const Node::Base::Ptr& child)
 {
 	/* elide multiplication sign only we're outputting symbolic variable names */
 	if (substitute_ || dynamic_cast<Node::Value*> (child.get())) {
@@ -45,14 +45,14 @@ void Print::maybe_print_multiplication (Node::Base::Ptr& child)
 	}
 }
 
-boost::any Print::visit (Node::Value& node)
+boost::any Print::visit (const Node::Value& node)
 {
 	rational_to_ostream (stream_, node.value());
 
 	return boost::any();
 }
 
-boost::any Print::visit (Node::Variable& node)
+boost::any Print::visit (const Node::Variable& node)
 {
 	if (substitute_ && node.can_be_substituted() && !node.value().empty()) {
 		any_to_ostream (stream_, node.value());
@@ -63,18 +63,18 @@ boost::any Print::visit (Node::Variable& node)
 	return boost::any();
 }
 
-boost::any Print::visit (Node::Function& node)
+boost::any Print::visit (const Node::Function& node)
 {
 	stream_ << node.name() << "(";
 
 	if (!node.children().empty()) {
 		auto child = node.children().begin();
 
-		(*child++)->accept (*this);
+		(*child++).node->accept (*this);
 
 		while (child != node.children().end()) {
 			stream_ << ", ";
-			(*child++)->accept (*this);
+			(*child++).node->accept (*this);
 		}
 	}
 
@@ -83,18 +83,16 @@ boost::any Print::visit (Node::Function& node)
 	return boost::any();
 }
 
-boost::any Print::visit (Node::Power& node)
+boost::any Print::visit (const Node::Power& node)
 {
-	auto child = node.children().begin();
-
-	parenthesized_visit (node, *child++);
+	parenthesized_visit (node, node.get_base());
 	stream_ << "^";
-	parenthesized_visit (node, *child++);
+	parenthesized_visit (node, node.get_exponent());
 
 	return boost::any();
 }
 
-boost::any Print::visit (Node::AdditionSubtraction& node)
+boost::any Print::visit (const Node::AdditionSubtraction& node)
 {
 	bool first = true;
 
@@ -112,7 +110,7 @@ boost::any Print::visit (Node::AdditionSubtraction& node)
 	return boost::any();
 }
 
-boost::any Print::visit (Node::MultiplicationDivision& node)
+boost::any Print::visit (const Node::MultiplicationDivision& node)
 {
 	bool first = true;
 

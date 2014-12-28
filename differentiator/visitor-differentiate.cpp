@@ -7,12 +7,12 @@ Differentiate::Differentiate(const std::string& variable)
 {
 }
 
-boost::any Differentiate::visit (Node::Value&)
+boost::any Differentiate::visit (const Node::Value&)
 {
 	return static_cast<Node::Base*> (new Node::Value (0));
 }
 
-boost::any Differentiate::visit (Node::Variable& node)
+boost::any Differentiate::visit (const Node::Variable& node)
 {
 	if (node.is_target_variable (variable_)) {
 		return static_cast<Node::Base*> (new Node::Value (1));
@@ -21,25 +21,25 @@ boost::any Differentiate::visit (Node::Variable& node)
 	}
 }
 
-boost::any Differentiate::visit (Node::Function& node)
+boost::any Differentiate::visit (const Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Differentiate error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any Differentiate::visit (Node::AdditionSubtraction& node)
+boost::any Differentiate::visit (const Node::AdditionSubtraction& node)
 {
 	Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
 
 	for (auto& child: node.children()) {
-		result->add_child (child.node->accept_ptr (*this), child.tag);
+		result->add_child (child.node->accept_ptr (*this), child.tag.negated);
 	}
 
 	return static_cast<Node::Base*> (result.release());
 }
 
-boost::any Differentiate::visit (Node::MultiplicationDivision& node)
+boost::any Differentiate::visit (const Node::MultiplicationDivision& node)
 {
 	Node::MultiplicationDivision::Ptr so_far (new Node::MultiplicationDivision);
 	Node::Base::Ptr deriv_so_far;
@@ -67,8 +67,8 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 		if (child.tag.reciprocated) {
 			/* g^2 */
 			Node::Power::Ptr g_squared (new Node::Power);
-			g_squared->add_child (std::move (g));
-			g_squared->add_child (Node::Base::Ptr (new Node::Value (2)));
+			g_squared->set_base (std::move (g));
+			g_squared->set_exponent (Node::Base::Ptr (new Node::Value (2)));
 
 			/* f'g - fg' */
 			Node::AdditionSubtraction::Ptr top (new Node::AdditionSubtraction);
@@ -98,21 +98,19 @@ boost::any Differentiate::visit (Node::MultiplicationDivision& node)
 			}
 		}
 
-		so_far->add_child (child.node->clone(), child.tag);
+		so_far->add_child (child.node->clone(), child.tag.reciprocated);
 	}
 
 	return static_cast<Node::Base*> (deriv_so_far.release());
 }
 
-boost::any Differentiate::visit (Node::Power& node)
+boost::any Differentiate::visit (const Node::Power& node)
 {
-	auto child = node.children().begin();
-
 	/* f, a */
-	Node::Base::Ptr &base = *child++,
-	                &exponent = *child++;
+	const Node::Base::Ptr &base = node.get_base(),
+	                      &exponent = node.get_exponent();
 
-	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent.get());
+	const Node::Value* exponent_value = dynamic_cast<const Node::Value*> (exponent.get());
 	if (!exponent_value) {
 		std::ostringstream reason;
 		reason << "Differentiate error: sorry, unimplemented: exponent is not a constant";
@@ -121,8 +119,8 @@ boost::any Differentiate::visit (Node::Power& node)
 
 	/* f^(a-1) */
 	Node::Power::Ptr pwr_minus_one (new Node::Power);
-	pwr_minus_one->add_child (base->clone());
-	pwr_minus_one->add_child (Node::Base::Ptr (new Node::Value (exponent_value->value() - 1)));
+	pwr_minus_one->set_base (base->clone());
+	pwr_minus_one->set_exponent (Node::Base::Ptr (new Node::Value (exponent_value->value() - 1)));
 
 	/* a * f^(a-1) * f' */
 	Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);

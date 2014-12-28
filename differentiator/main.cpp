@@ -530,15 +530,15 @@ int main (int argc, char** argv)
 
 			// (dF/dx * error(x))^2
 			Node::Power::Ptr partial_sq (new Node::Power);
-			partial_sq->add_child (std::move (partial));
-			partial_sq->add_child (Node::Base::Ptr (new Node::Value (2)));
+			partial_sq->set_base (std::move (partial));
+			partial_sq->set_exponent (Node::Base::Ptr (new Node::Value (2)));
 
 			error_sq_sum->add_child (std::move (partial_sq), false);
 		}
 
 		Node::Power::Ptr error_sqrt (new Node::Power);
-		error_sqrt->add_child (std::move (error_sq_sum));
-		error_sqrt->add_child (Node::Base::Ptr (new Node::Value (rational_t (1, 2))));
+		error_sqrt->set_base (std::move (error_sq_sum));
+		error_sqrt->set_exponent (Node::Base::Ptr (new Node::Value (rational_t (1, 2))));
 
 		error.tree = simplify_tree (error_sqrt.get());
 
@@ -614,8 +614,8 @@ int main (int argc, char** argv)
 					if (current_order > 1) {
 						Node::Power::Ptr power (new Node::Power);
 
-						power->add_child (std::move (variable));
-						power->add_child (Node::Base::Ptr (new Node::Value (current_order)));
+						power->set_base (std::move (variable));
+						power->set_exponent (Node::Base::Ptr (new Node::Value (current_order)));
 
 						variable = std::move (power);
 					}

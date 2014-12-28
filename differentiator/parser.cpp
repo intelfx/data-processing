@@ -76,8 +76,8 @@ Node::Base::Ptr Parser::get_power()
 
 	if (current_.check_and_advance ({ "^", "**" })) {
 		Node::Power::Ptr result (new Node::Power);
-		result->add_child (std::move (base));
-		result->add_child (get_sub_expr());
+		result->set_base (std::move (base));
+		result->set_exponent (get_sub_expr());
 		return std::move (result);
 	} else {
 		return base;

@@ -3,7 +3,7 @@
 namespace {
 
 template <typename T>
-Node::Base::Ptr add_children_and_return (Node::TaggedChildList<T>* created_node, const Node::TaggedChildList<T>* src)
+Node::Base::Ptr add_children_and_return (T* created_node, const T* src)
 {
 	created_node->add_children_from (*src);
 	return Node::Base::Ptr (created_node);
@@ -31,7 +31,10 @@ Base::Ptr Function::clone() const
 
 Base::Ptr Power::clone() const
 {
-	return add_children_and_return (new Power, this);
+	Node::Power::Ptr result (new Node::Power);
+	result->set_base (base_->clone());
+	result->set_exponent (exponent_->clone());
+	return std::move (result);
 }
 
 Base::Ptr AdditionSubtraction::clone() const

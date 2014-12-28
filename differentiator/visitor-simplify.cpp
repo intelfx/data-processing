@@ -1,5 +1,259 @@
 #include "visitor-simplify.h"
 
+namespace {
+
+/* holds a mapping from stripped nodes to their constants to aid constant folding */
+typedef std::map<Node::TaggedChild<void>, rational_t> DecompositionMap;
+typedef std::pair<Node::TaggedChild<void>, rational_t> StrippedNode;
+
+StrippedNode power_strip_exponent (Node::Base::Ptr&& node, bool reciprocate);
+Node::Base::Ptr power_add_exponent (StrippedNode&& node_data);
+
+StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, bool negate);
+Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data);
+
+void generic_fold_single (DecompositionMap& result, StrippedNode&& term);
+
+void muldiv_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::MultiplicationDivision& node, bool node_reciprocation);
+Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& terms);
+
+void addsub_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, bool node_negation);
+Node::Base::Ptr addsub_reconstruct (const rational_t& value, DecompositionMap&& terms);
+
+StrippedNode power_strip_exponent (Node::Base::Ptr&& node, bool reciprocate)
+{
+	StrippedNode result;
+
+	Node::Power* node_power = dynamic_cast<Node::Power*> (node.get());
+	if (node_power) {
+		result.second = node_power->get_exponent_constant (true);
+		result.first.node = node_power->decay_move (std::move (node));
+	} else {
+		result.second = rational_t (1);
+		result.first.node = std::move (node);
+	}
+
+	if (reciprocate) {
+		result.second = -result.second;
+	}
+
+	assert (result.second != 0);
+
+	return result;
+}
+
+Node::Base::Ptr power_add_exponent (StrippedNode&& node_data)
+{
+	assert (node_data.second != 0);
+
+	if (node_data.second == 1) {
+		return std::move (node_data.first.node);
+	} else {
+		Node::Power* node_power = dynamic_cast<Node::Power*> (node_data.first.node.get());
+		if (node_power) {
+			node_power->insert_exponent_constant (node_data.second);
+			return std::move (node_data.first.node);
+		} else {
+			Node::Power::Ptr result_power (new Node::Power);
+			result_power->set_base (std::move (node_data.first.node));
+			result_power->insert_exponent_constant (node_data.second);
+			return std::move (result_power);
+		}
+	}
+}
+
+StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, bool negate)
+{
+	StrippedNode result;
+
+	Node::MultiplicationDivision* node_muldiv = dynamic_cast<Node::MultiplicationDivision*> (node.get());
+	if (node_muldiv) {
+		result.second = node_muldiv->get_constant (true);
+		result.first.node = node_muldiv->decay_move (std::move (node));
+	} else {
+		result.second = rational_t (1);
+		result.first.node = std::move (node);
+	}
+
+	if (negate) {
+		result.second = -result.second;
+	}
+
+	assert (result.second != 0);
+
+	return result;
+}
+
+Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data)
+{
+	assert (node_data.second != 0);
+
+	if (node_data.second == 1) {
+		return std::move (node_data.first.node);
+	} else {
+		Node::MultiplicationDivision* node_muldiv = dynamic_cast<Node::MultiplicationDivision*> (node_data.first.node.get());
+		if (node_muldiv) {
+			node_muldiv->insert_constant (node_data.second);
+			return std::move (node_data.first.node);
+		} else {
+			Node::MultiplicationDivision::Ptr result_muldiv (new Node::MultiplicationDivision);
+			result_muldiv->insert_constant (node_data.second);
+			result_muldiv->add_child (std::move (node_data.first.node), false);
+			return std::move (result_muldiv);
+		}
+	}
+}
+
+void generic_fold_single (DecompositionMap& result, StrippedNode&& term)
+{
+	auto r = result.emplace (std::move (term.first), term.second);
+	if (!r.second) {
+		/* fold -- sum up exponents/multipliers */
+		r.first->second += term.second;
+
+		/* if exponent/multiplier is 0, erase the child */
+		if (r.first->second == 0) {
+			result.erase (r.first);
+		}
+	}
+}
+
+void muldiv_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::MultiplicationDivision& node, bool node_reciprocation)
+{
+	for (auto& child: node.children()) {
+		Node::Base::Ptr simplified (child.node->accept_ptr (visitor));
+		bool reciprocation = child.tag.reciprocated ^ node_reciprocation;
+		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
+		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
+
+		if (simplified_value) {
+			if (reciprocation) {
+				result_value /= simplified_value->value();
+			} else {
+				result_value *= simplified_value->value();
+			}
+		} else if (simplified_muldiv) {
+			muldiv_decompose_and_fold_nested (visitor, result_value, result, *simplified_muldiv, reciprocation);
+		} else {
+			/* insert child into the destination map, attempting folding */
+			StrippedNode term = power_strip_exponent (std::move (simplified), reciprocation);
+			generic_fold_single (result, std::move (term));
+		}
+
+		/* shortcut: if constant somehow turns to 0, then just return. */
+		if (result_value == 0) {
+			return;
+		}
+	}
+}
+
+Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& terms)
+{
+	if ((value != 0) &&
+	    !terms.empty()) {
+		/* we have something to multiply: at least one non-constant node and a non-zero constant */
+
+		/* if there is "neutral" constant and only one child node, return it directly.
+		 * in this mode we push exponent sign into child, even if this leads to creation of a Power node */
+		if ((value == 1) &
+		    (std::next (terms.begin()) == terms.end())) {
+			StrippedNode term = take_map (terms, terms.begin());
+			return power_add_exponent (std::move (term));
+		}
+
+		/* otherwise we create a full-fledged MultiplicationDivision node. */
+		Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);
+
+		/* add the constant, if needed */
+		if (value != 1) {
+			result->add_child (Node::Base::Ptr (new Node::Value (value)), false);
+		}
+
+		/* add remaining child nodes.
+		 * in this mode we extract sign from child, this allows to elide a Power if constant == -1 */
+		for (auto it = terms.begin(); it != terms.end(); ) {
+			StrippedNode term = take_map (terms, it++);
+			if (term.second < 0) {
+				term.second = -term.second;
+				result->add_child (power_add_exponent (std::move (term)), true);
+			} else {
+				result->add_child (power_add_exponent (std::move (term)), false);
+			}
+		}
+
+		return std::move (result);
+	} else {
+		/* we do not have any nodes besides the constant, return it directly */
+		return Node::Base::Ptr (new Node::Value (value));
+	}
+}
+
+void addsub_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, bool node_negation)
+{
+	for (const auto& child: node.children()) {
+		bool negation = child.tag.negated ^ node_negation;
+		Node::Base::Ptr simplified (child.node->accept_ptr (visitor));
+		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
+		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
+
+		if (simplified_value) {
+			if (negation) {
+				result_value -= simplified_value->value();
+			} else {
+				result_value += simplified_value->value();
+			}
+		} else if (simplified_addsub) {
+			addsub_decompose_and_fold_nested (visitor, result_value, result, *simplified_addsub, negation);
+		} else {
+			/* insert child into the destination map, attempting folding */
+			StrippedNode term = muldiv_strip_multiplier (std::move (simplified), negation);
+			generic_fold_single (result, std::move (term));
+		}
+	}
+}
+
+Node::Base::Ptr addsub_reconstruct (const rational_t& value, DecompositionMap&& terms)
+{
+	if (!terms.empty()) {
+		/* we have something to add up: at least one non-constant node */
+
+		/* if there is "neutral" constant and only one child node, return it directly.
+		 * in this mode we push sign into child, even if this leads to creation of a MultiplicationDivision node */
+		if ((value == 0) &
+		    (std::next (terms.begin()) == terms.end())) {
+			StrippedNode term = take_map (terms, terms.begin());
+			return muldiv_add_multiplier (std::move (term));
+		}
+
+		/* otherwise we create a full-fledged AdditionSubtraction node. */
+		Node::AdditionSubtraction::Ptr result (new Node::AdditionSubtraction);
+
+		/* add the constant, if needed */
+		if (value != 0) {
+			result->add_child (Node::Base::Ptr (new Node::Value (value)), false);
+		}
+
+		/* add remaining child nodes.
+		 * in this mode we extract sign from child, this allows to elide a MultiplicationDivision if constant == -1 */
+		for (auto it = terms.begin(); it != terms.end(); ) {
+			StrippedNode term = take_map (terms, it++);
+			if (term.second < 0) {
+				term.second = -term.second;
+				result->add_child (muldiv_add_multiplier (std::move (term)), true);
+			} else {
+				result->add_child (muldiv_add_multiplier (std::move (term)), false);
+			}
+		}
+
+		return std::move (result);
+	} else {
+		/* we do not have any nodes besides the constant, return it directly */
+		return Node::Base::Ptr (new Node::Value (value));
+	}
+}
+
+} // anonymous namespace
+
 namespace Visitor {
 
 Simplify::Simplify (const std::string& variable)
@@ -11,12 +265,12 @@ Simplify::Simplify()
 {
 }
 
-boost::any Simplify::visit (Node::Value& node)
+boost::any Simplify::visit (const Node::Value& node)
 {
 	return static_cast<Node::Base*> (node.clone().release());
 }
 
-boost::any Simplify::visit (Node::Variable& node)
+boost::any Simplify::visit (const Node::Variable& node)
 {
 	// we substitute if both 1) variable is eligible for substitution and 2) it holds a rational value
 	if (!simplification_variable_.empty() && !node.is_target_variable (simplification_variable_)) {
@@ -29,19 +283,17 @@ boost::any Simplify::visit (Node::Variable& node)
 	return static_cast<Node::Base*> (node.clone().release());
 }
 
-boost::any Simplify::visit (Node::Function& node)
+boost::any Simplify::visit (const Node::Function& node)
 {
 	std::ostringstream reason;
 	reason << "Simplify error: unknown function: '" << node.name() << "'";
 	throw std::runtime_error (reason.str());
 }
 
-boost::any Simplify::visit (Node::Power& node)
+boost::any Simplify::visit (const Node::Power& node)
 {
-	auto child = node.children().begin();
-
-	Node::Base::Ptr base ((*child++)->accept_ptr (*this)),
-	                exponent ((*child++)->accept_ptr (*this));
+	Node::Base::Ptr base (node.get_base()->accept_ptr (*this)),
+	                exponent (node.get_exponent()->accept_ptr (*this));
 
 	Node::Value *base_value = dynamic_cast<Node::Value*> (base.get()),
 	            *exponent_value = dynamic_cast<Node::Value*> (exponent.get());
@@ -59,361 +311,60 @@ boost::any Simplify::visit (Node::Power& node)
 	} else if (exponent_value && (exponent_value->value() == 1)) {
 		return static_cast<Node::Base*> (base.release());
 	} else if (base_muldiv) {
-		for (auto& child: base_muldiv->children()) {
-			/* replace each child with its power */
-			Node::Power::Ptr child_pwr (new Node::Power);
-			child_pwr->add_child (std::move (child.node));
-			child_pwr->add_child (exponent->clone());
-			child.node = std::move (child_pwr);
-		}
-		return base->accept_ptr (*this).release();
-	} else if (base_power) {
-		child = base_power->children().begin();
+		Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);
 
-		Node::Base::Ptr base_base (std::move (*child++)),
-		                base_exponent (std::move (*child++));
+		for (auto it = base_muldiv->children().begin(); it != base_muldiv->children().end(); ) {
+			auto base_term = take_set (base_muldiv->children(), it++);
+
+			Node::Power::Ptr base_term_pwr (new Node::Power);
+			base_term_pwr->set_base (std::move (base_term.node));
+			base_term_pwr->set_exponent (exponent->clone());
+			result->add_child (std::move (base_term_pwr), base_term.tag.reciprocated);
+		}
+
+		return result->accept_ptr (*this).release();
+	} else if (base_power) {
+		Node::Base::Ptr base_base (std::move (base_power->get_base())),
+		                base_exponent (std::move (base_power->get_exponent()));
 
 		Node::MultiplicationDivision::Ptr result_exponent (new Node::MultiplicationDivision);
 		result_exponent->add_child (std::move (base_exponent), false);
 		result_exponent->add_child (std::move (exponent), false);
 
 		Node::Power::Ptr result (new Node::Power);
-		result->add_child (std::move (base_base));
-		result->add_child (std::move (result_exponent));
+		result->set_base (std::move (base_base));
+		result->set_exponent (std::move (result_exponent));
 		return result->accept_ptr (*this).release();
 	} else {
 		Node::Power::Ptr result (new Node::Power);
-		result->add_child (std::move (base));
-		result->add_child (std::move (exponent));
+		result->set_base (std::move (base));
+		result->set_exponent (std::move (exponent));
 		return static_cast<Node::Base*> (result.release());
 	}
 }
 
-struct DisassembledNode
-{
-	rational_t constant;
-	Node::Base::Ptr subtree;
-};
-
-DisassembledNode disassemble_muldiv (const Node::Base::Ptr& node, bool negate)
-{
-	DisassembledNode result { rational_t (1), node->clone() };
-
-	Node::MultiplicationDivision* result_muldiv = dynamic_cast<Node::MultiplicationDivision*> (result.subtree.get());
-	if (result_muldiv) {
-		result.constant = result_muldiv->get_constant_value_and_release();
-		if (result_muldiv->children().size() == 1) {
-			result.subtree = std::move (result_muldiv->children().front().node);
-		}
-	}
-
-	if (negate) {
-		result.constant = -result.constant;
-	}
-
-	return result;
-}
-
-Node::Base::Ptr assemble_muldiv (DisassembledNode&& node_data)
-{
-	if (node_data.constant == 0) {
-		return Node::Base::Ptr (new Node::Value (0));
-	} else if (node_data.constant == 1) {
-		return std::move (node_data.subtree);
-	} else {
-		Node::MultiplicationDivision* node_muldiv = dynamic_cast<Node::MultiplicationDivision*> (node_data.subtree.get());
-		if (node_muldiv) {
-			node_muldiv->insert_constant (node_data.constant);
-			return std::move (node_data.subtree);
-		} else {
-			Node::MultiplicationDivision::Ptr new_muldiv (new Node::MultiplicationDivision);
-			new_muldiv->insert_constant (node_data.constant);
-			new_muldiv->add_child (std::move (node_data.subtree), false);
-			return std::move (new_muldiv);
-		}
-	}
-}
-
-void Simplify::fold_with_children (Node::AdditionSubtraction::Ptr& result, Node::Base::Ptr& node, bool& node_negation)
-{
-	/* Folding semantics:
-	 * Merge "a * X" specified by pair (node; node_negation) into any "b * X" specified by one of result's children,
-	 * producing "(a + b) * X". The result must be simplified and written into (node; node_negation).
-	 * The child node that took part in the folding must be removed. */
-
-	/* Do not fold constants, this is meaningless. */
-	if (dynamic_cast<Node::Value*> (node.get())) {
-		return;
-	}
-
-	/* disassemble (node; node_negation) into a constant and a subtree. */
-	DisassembledNode node_data = disassemble_muldiv (node, node_negation);
-	bool node_data_changed = false;
-
-	/* Verify that we have any nodes to attempt folding with. */
-	if (result) {
-		for (auto child = result->children().begin(); child != result->children().end(); ++child) {
-			DisassembledNode child_data = disassemble_muldiv (child->node, child->tag.negated);
-
-			if (child_data.subtree->compare (node_data.subtree)) {
-				/* Subtrees match.
-				* Do the folding (sum up constants). */
-				node_data.constant += child_data.constant;
-
-				/* Mark the node for rebuilding. */
-				node_data_changed = true;
-
-				/* Erase the second node participated in folding.
-				* Iterator becomes invalid - exit the loop. */
-				result->children().erase (child);
-				break;
-			}
-		}
-	}
-
-	/* Avoid "+(-x)" */
-	if (node_data.constant < 0) {
-		node_data.constant = -node_data.constant;
-
-		if (node_negation != true) {
-			node_negation = true;
-			node_data_changed = true;
-		}
-	} else {
-		if (node_negation != false) {
-			node_negation = false;
-			node_data_changed = true;
-		}
-	}
-
-	if (node_data_changed) {
-		/* Build the node and replace source node with the folded version. */
-		node = assemble_muldiv (std::move (node_data));
-	}
-}
-
-void Simplify::simplify_nested_nodes (rational_t& result_value, Node::AdditionSubtraction::Ptr& result, Node::AdditionSubtraction& node, bool node_negation)
-{
-	for (auto& child: node.children()) {
-		bool negation = child.tag.negated ^ node_negation;
-		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
-
-		fold_with_children (result, simplified, negation);
-
-		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
-		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
-
-		if (simplified_value) {
-			if (negation) {
-				result_value -= simplified_value->value();
-			} else {
-				result_value += simplified_value->value();
-			}
-		} else {
-			if (!result) {
-				result = Node::AdditionSubtraction::Ptr (new Node::AdditionSubtraction);
-			}
-
-			if (simplified_addsub) {
-				simplify_nested_nodes (result_value, result, *simplified_addsub, negation);
-			} else {
-				result->add_child (std::move (simplified), negation);
-			}
-		}
-	}
-}
-
-boost::any Simplify::visit (Node::AdditionSubtraction& node)
-{
-	rational_t result_value (0);
-	Node::AdditionSubtraction::Ptr result;
-
-	simplify_nested_nodes (result_value, result, node, false);
-
-	if (result) {
-		/* we have at least one non-constant node.
-		 * add the constant (as the first child) if needed */
-		if (result_value != 0) {
-			result->add_child_front (Node::Base::Ptr (new Node::Value (result_value)), false);
-		}
-
-		/* if we still have only one child, try to get rid of our node entirely */
-		if (result->children().size() == 1) {
-			Node::Base::Ptr& child = result->children().front().node;
-
-			if (result->children().front().tag.negated) {
-				/* our only child is negated, check if we can push the sign into it */
-				Node::MultiplicationDivision* child_muldiv = dynamic_cast<Node::MultiplicationDivision*> (child.get());
-				if (child_muldiv) {
-					/* mul-div nodes have a constant which can be multiplied by -1 */
-					child_muldiv->insert_constant (rational_t (-1));
-					return static_cast<Node::Base*> (child.release());
-				}
-			} else {
-				/* our only child is non-negated, just return it as-is (+x == x) */
-				return static_cast<Node::Base*> (child.release());
-			}
-		}
-
-		return static_cast<Node::Base*> (result.release());
-	} else {
-		/* we do not have any nodes besides the constant, return it directly */
-		return static_cast<Node::Base*> (new Node::Value (result_value));
-	}
-}
-
-DisassembledNode disassemble_power (const Node::Base::Ptr& node, bool reciprocate)
-{
-	DisassembledNode result { rational_t (1), node->clone() };
-
-	Node::Power* result_power = dynamic_cast<Node::Power*> (result.subtree.get());
-	if (result_power) {
-		auto child = result_power->children().begin();
-		Node::Base::Ptr& result_base = *child++;
-		Node::Value* result_exponent_value = dynamic_cast<Node::Value*> (child->get());
-
-		if (result_exponent_value) {
-			result.constant = result_exponent_value->value();
-			result.subtree = std::move (result_base);
-		}
-	}
-
-	if (reciprocate) {
-		result.constant = -result.constant;
-	}
-
-	return result;
-}
-
-Node::Base::Ptr assemble_power (DisassembledNode&& node_data, Simplify& simplifier)
-{
-	if (node_data.constant == 0) {
-		return Node::Base::Ptr (new Node::Value (1));
-	} else if (node_data.constant == 1) {
-		return std::move (node_data.subtree);
-	} else {
-		Node::Power::Ptr new_power (new Node::Power);
-		new_power->add_child (std::move (node_data.subtree));
-		new_power->add_child (Node::Base::Ptr (new Node::Value (node_data.constant)));
-		return new_power->accept_ptr (simplifier);
-	}
-}
-
-void Simplify::fold_with_children (Node::MultiplicationDivision::Ptr& result, Node::Base::Ptr& node, bool& node_reciprocation)
-{
-	/* Folding semantics:
-	 * Merge "X^a" specified by pair (node; node_reciprocation) into any "X^b" specified by one of result's children,
-	 * producing "X^(a+b)". The result must be simplified and written into (node; node_reciprocation).
-	 * The child node that took part in the folding must be removed. */
-
-	/* Do not fold constants, this is meaningless. */
-	if (dynamic_cast<Node::Value*> (node.get())) {
-		return;
-	}
-
-	/* disassemble (node; node_negation) into a constant and a subtree. */
-	DisassembledNode node_data = disassemble_power (node, node_reciprocation);
-	bool node_data_changed = false;
-
-	/* Verify that we have any nodes to attempt folding with. */
-	if (result) {
-		for (auto child = result->children().begin(); child != result->children().end(); ++child) {
-			DisassembledNode child_data = disassemble_power (child->node, child->tag.reciprocated);
-
-			if (child_data.subtree->compare (node_data.subtree)) {
-				/* Subtrees match.
-				* Do the folding (sum up constants). */
-				node_data.constant += child_data.constant;
-
-				/* Mark the node for rebuilding. */
-				node_data_changed = true;
-
-				/* Erase the second node participated in folding.
-				* Iterator becomes invalid - end the loop immediately. */
-				result->children().erase (child);
-				break;
-			}
-		}
-	}
-
-	/* Avoid "*(x^-1)" */
-	if (node_data.constant < 0) {
-		node_data.constant = -node_data.constant;
-
-		if (node_reciprocation != true) {
-			node_reciprocation = true;
-			node_data_changed = true;
-		}
-	} else {
-		if (node_reciprocation != false) {
-			node_reciprocation = false;
-			node_data_changed = true;
-		}
-	}
-
-	if (node_data_changed) {
-		/* Build the node and replace source node with the folded version. */
-		node = assemble_power (std::move (node_data), *this);
-	}
-}
-
-void Simplify::simplify_nested_nodes (rational_t& result_value, Node::MultiplicationDivision::Ptr& result, Node::MultiplicationDivision& node, bool node_reciprocation)
-{
-	for (auto& child: node.children()) {
-		Node::Base::Ptr simplified (child.node->accept_ptr (*this));
-		bool reciprocation = child.tag.reciprocated ^ node_reciprocation;
-
-		fold_with_children (result, simplified, reciprocation);
-
-		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
-		Node::MultiplicationDivision* simplified_muldiv = dynamic_cast<Node::MultiplicationDivision*> (simplified.get());
-
-		if (simplified_value) {
-			if (reciprocation) {
-				result_value /= simplified_value->value();
-			} else {
-				result_value *= simplified_value->value();
-			}
-		} else {
-			if (!result) {
-				result = Node::MultiplicationDivision::Ptr (new Node::MultiplicationDivision);
-			}
-
-			if (simplified_muldiv) {
-				simplify_nested_nodes (result_value, result, *simplified_muldiv, reciprocation);
-			} else {
-				result->add_child (std::move (simplified), reciprocation);
-			}
-		}
-	}
-}
-
-boost::any Simplify::visit (Node::MultiplicationDivision& node)
+boost::any Simplify::visit (const Node::MultiplicationDivision& node)
 {
 	rational_t result_value (1);
-	Node::MultiplicationDivision::Ptr result;
 
-	simplify_nested_nodes (result_value, result, node, false);
+	/* product: term -> exponent */
+	DecompositionMap node_terms;
 
-	if (result && (result_value != 0)) {
-		/* we have at least one non-constant node and we are not multiplied by zero.
-		 * add the constant (as the first child) if needed */
-		result->insert_constant (result_value);
+	muldiv_decompose_and_fold_nested (*this, result_value, node_terms, node, false);
 
-		/* if we still have only one child, try to get rid of our node entirely */
-		if (result->children().size() == 1) {
-			if (!result->children().front().tag.reciprocated) {
-				/* our only child is non-reciprocated, just return it as-is */
-				return static_cast<Node::Base*> (result->children().front().node.release());
-			}
-		}
+	return muldiv_reconstruct (result_value, std::move (node_terms)).release();
+}
 
-		return static_cast<Node::Base*> (result.release());
-	} else {
-		/* we do not have any nodes besides the constant, return it directly */
-		return static_cast<Node::Base*> (new Node::Value (result_value));
-	}
+boost::any Simplify::visit (const Node::AdditionSubtraction& node)
+{
+	rational_t result_value (0);
 
+	/* sum: term -> multiplier */
+	DecompositionMap node_terms;
+
+	addsub_decompose_and_fold_nested (*this, result_value, node_terms, node, false);
+
+	return addsub_reconstruct (result_value, std::move (node_terms)).release();
 }
 
 } // namespace Visitor

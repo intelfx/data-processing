@@ -30,9 +30,9 @@ void Function::Dump (std::ostream& str) const
 {
 	str << "( " << name_;
 
-	for (const Base::Ptr& child: children_) {
+	for (const auto& child: children_) {
 		str << " ";
-		child->Dump (str);
+		child.node->Dump (str);
 	}
 
 	str << ")";
@@ -40,14 +40,11 @@ void Function::Dump (std::ostream& str) const
 
 void Power::Dump (std::ostream& str) const
 {
-	str << "( **";
-
-	for (const Base::Ptr& child: children_) {
-		str << " ";
-		child->Dump (str);
-	}
-
-	str << ")";
+	str << "( ** ";
+	base_->Dump (str);
+	str << " ";
+	exponent_->Dump (str);
+	str << " )";
 }
 
 void AdditionSubtraction::Dump (std::ostream& str) const

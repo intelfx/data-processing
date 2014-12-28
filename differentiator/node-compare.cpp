@@ -1,76 +1,37 @@
 #include "node.h"
 
-namespace {
-
-template <typename Tag>
-bool compare_children (const Node::TaggedChildList<Tag>& _1, const Node::TaggedChildList<Tag>& _2)
-{
-	if (_1.children().size() != _2.children().size()) {
-		return false;
-	}
-
-	std::vector<bool> matched_children (_1.children().size());
-
-	for (auto& child_1: _1.children()) {
-		bool ok = false;
-		int cnt = 0;
-
-		for (auto& child_2: _2.children()) {
-			if (!matched_children.at (cnt) &&
-				Node::TaggedChildList<Tag>::compare_child (child_1, child_2)) {
-				ok = true;
-				break;
-			}
-			++cnt;
-		}
-
-		if (ok) {
-			matched_children.at (cnt) = true;
-		} else {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-template <typename Tag>
-bool compare_children_ordered (const Node::TaggedChildList<Tag>& _1, const Node::TaggedChildList<Tag>& _2)
-{
-	if (_1.children().size() != _2.children().size()) {
-		return false;
-	}
-
-	auto child_1 = _1.children().begin(),
-	     child_2 = _2.children().begin();
-	while (child_1 != _1.children().end()) {
-		if (!Node::TaggedChildList<Tag>::compare_child (*child_1++, *child_2++)) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-} // anonymous namespace
-
 namespace Node
 {
 
-#define COMPARE_CHECK_TYPE(Type)                              \
-	const Type* node = dynamic_cast<const Type*> (rhs.get()); \
-	if (!node) {                                              \
-		return false;                                         \
+bool Base::compare (const Base::Ptr& rhs) const
+{
+	if (typeid (*this) == typeid (*rhs.get())) {
+		return compare_same_type (rhs);
+	} else {
+		return false;
 	}
+}
 
-bool Value::compare (const Base::Ptr& rhs) const
+bool Base::less (const Base::Ptr& rhs) const
+{
+	if (typeid (*this) == typeid (*rhs.get())) {
+		return less_same_type (rhs);
+	} else {
+		return get_type() < rhs->get_type();
+	}
+}
+
+#define COMPARE_CHECK_TYPE(Type)                             \
+	const Type* node = static_cast<const Type*> (rhs.get()); \
+
+bool Value::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(Value);
 
 	return (value_ == node->value_);
 }
 
-bool Variable::compare (const Base::Ptr& rhs) const
+bool Variable::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(Variable);
 
@@ -78,33 +39,87 @@ bool Variable::compare (const Base::Ptr& rhs) const
 	       (is_error_ == node->is_error_);
 }
 
-bool Function::compare (const Base::Ptr& rhs) const
+bool Function::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(Function);
 
 	return (name_ == node->name_) &&
-	       compare_children_ordered (*this, *node);
+	       (children_ == node->children_);
 }
 
-bool Power::compare (const Base::Ptr& rhs) const
+bool Power::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(Power);
 
-	return compare_children_ordered (*this, *node);
+	return base_->compare (node->base_) &&
+	       exponent_->compare (node->exponent_);
 }
 
-bool AdditionSubtraction::compare (const Base::Ptr& rhs) const
+bool AdditionSubtraction::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(AdditionSubtraction);
 
-	return compare_children (*this, *node);
+	return children_ == node->children_;
 }
 
-bool MultiplicationDivision::compare (const Base::Ptr& rhs) const
+bool MultiplicationDivision::compare_same_type (const Base::Ptr& rhs) const
 {
 	COMPARE_CHECK_TYPE(MultiplicationDivision);
 
-	return compare_children (*this, *node);
+	return children_ == node->children_;
 }
 
+
+#define LEXICOGRAPHICAL_COMPARE_CHAIN(less, equal) \
+	if (less) return true;                         \
+	else if (!(equal)) return false;
+
+#define LEXICOGRAPHICAL_COMPARE_LAST(less)         \
+	return (less);
+
+bool Value::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(Value);
+
+	LEXICOGRAPHICAL_COMPARE_LAST(value_ < node->value_);
+}
+
+bool Variable::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(Variable);
+
+	LEXICOGRAPHICAL_COMPARE_CHAIN(is_error_ < node->is_error_,
+	                              is_error_ == node->is_error_);
+	LEXICOGRAPHICAL_COMPARE_LAST(name_ < node->name_);
+}
+
+bool Function::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(Function);
+
+	LEXICOGRAPHICAL_COMPARE_LAST(name_ < node->name_);
+}
+
+bool Power::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(Power);
+
+	LEXICOGRAPHICAL_COMPARE_CHAIN(exponent_->less (node->exponent_),
+	                              exponent_->compare (node->exponent_));
+	LEXICOGRAPHICAL_COMPARE_LAST(base_->less (node->base_));
+}
+
+bool AdditionSubtraction::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(AdditionSubtraction);
+
+	LEXICOGRAPHICAL_COMPARE_LAST(children_ < node->children_);
+}
+
+bool MultiplicationDivision::less_same_type (const Base::Ptr& rhs) const
+{
+	COMPARE_CHECK_TYPE(MultiplicationDivision);
+
+	LEXICOGRAPHICAL_COMPARE_LAST(children_ < node->children_);
+}
 } // namespace Node

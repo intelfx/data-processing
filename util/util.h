@@ -109,6 +109,43 @@ inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
 }
 
 /*
+ * Util: take (erase+return) an object from an associative container which prohibits modification of keys.
+ * FIXME: UB, to be fixed in N3586, N3645 or follow-ups (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3645.pdf)
+ */
+
+template <typename T>
+using map_value_type = std::pair<typename T::key_type, typename T::mapped_type>;
+
+template <typename T>
+typename T::value_type take_set (T& container, typename T::iterator iterator)
+{
+	try {
+		typename T::value_type result = std::move (const_cast<typename T::value_type&> (*iterator));
+		container.erase (iterator);
+		return result;
+	} catch (...) {
+		container.erase (iterator);
+		throw;
+	}
+}
+
+template <typename T>
+map_value_type<T> take_map (T& container, typename T::iterator iterator)
+{
+	try {
+		map_value_type<T> result {
+			std::move (const_cast<typename T::key_type&> (iterator->first)),
+			std::move (iterator->second)
+		};
+		container.erase (iterator);
+		return result;
+	} catch (...) {
+		container.erase (iterator);
+		throw;
+	}
+}
+
+/*
  * Numeric: converts a rational value to floating-point representation.
  */
 

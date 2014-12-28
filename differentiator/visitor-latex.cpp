@@ -181,14 +181,14 @@ void LaTeX::Document::print (const std::string& name, Node::Base* tree, Node::Ba
 	write_equation_footer();
 }
 
-boost::any LaTeX::visit (Node::Value& node)
+boost::any LaTeX::visit (const Node::Value& node)
 {
 	rational_to_latex (stream_, node.value());
 
 	return boost::any();
 }
 
-boost::any LaTeX::visit (Node::Variable& node)
+boost::any LaTeX::visit (const Node::Variable& node)
 {
 	if (substitute_ && node.can_be_substituted() && !node.value().empty()) {
 		any_to_latex (stream_, node.value());
@@ -202,14 +202,12 @@ boost::any LaTeX::visit (Node::Variable& node)
 	return boost::any();
 }
 
-boost::any LaTeX::visit (Node::Power& node)
+boost::any LaTeX::visit (const Node::Power& node)
 {
-	auto child = node.children().begin();
+	const Node::Base::Ptr &base = node.get_base(),
+	                      &exponent = node.get_exponent();
 
-	Node::Base::Ptr &base = *child++,
-	                &exponent = *child++;
-
-	Node::Value* exponent_value = dynamic_cast<Node::Value*> (exponent.get());
+	const Node::Value* exponent_value = dynamic_cast<const Node::Value*> (exponent.get());
 
 	if (exponent_value &&
 	    exponent_value->value().numerator() == 1) {
@@ -233,7 +231,7 @@ boost::any LaTeX::visit (Node::Power& node)
 	return boost::any();
 }
 
-boost::any LaTeX::visit (Node::MultiplicationDivision& node)
+boost::any LaTeX::visit (const Node::MultiplicationDivision& node)
 {
 	size_t mul_count = 0, div_count = 0;
 
