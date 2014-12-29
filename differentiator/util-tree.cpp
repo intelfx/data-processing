@@ -40,11 +40,13 @@ Node::Base::Ptr differentiate (Node::Base* tree, const std::string& partial_vari
 	Visitor::Simplify simplifier;
 	Visitor::Differentiate differentiator (partial_variable);
 
-	Node::Base::Ptr ret = tree->accept_ptr (simplifier);
+	Node::Base::Ptr ret = tree->accept_ptr (differentiator)
+	                          ->accept_ptr (simplifier);
 
-	for (unsigned i = 0; i < order; ++i) {
-		ret = ret->accept_ptr (differentiator);
+	for (unsigned i = 1; i < order; ++i) {
+		ret = ret->accept_ptr (differentiator)
+		         ->accept_ptr (simplifier);
 	}
 
-	return ret->accept_ptr (simplifier);
+	return ret;
 }
