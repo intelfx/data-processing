@@ -82,7 +82,8 @@ struct TaggedChild
 	TaggedChild() = default;
 	TaggedChild (const TaggedChild&) = delete;
 	TaggedChild (TaggedChild&&) = default;
-    TaggedChild clone() const { return { node->clone(), tag }; }
+	TaggedChild (Base::Ptr&& n, Tag t) : node (std::move (n)), tag (t) { }
+	TaggedChild clone() const { return TaggedChild<Tag> { node->clone(), tag }; }
 };
 
 template <>
@@ -108,7 +109,8 @@ struct TaggedChild<void>
 	TaggedChild() = default;
 	TaggedChild (const TaggedChild<void>&) = delete;
 	TaggedChild (TaggedChild<void>&&) = default;
-    TaggedChild clone() const { return { node->clone() }; }
+	TaggedChild (Base::Ptr&& n) : node (std::move (n)) { }
+	TaggedChild clone() const { return node->clone(); }
 };
 
 template <typename Tag>
@@ -214,7 +216,7 @@ public:
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str) const;
 
-    void add_child (Node::Base::Ptr&& node) { TaggedChildList::add_child ({ std::move (node) }); }
+	void add_child (Node::Base::Ptr&& node) { TaggedChildList::add_child (std::move (node)); }
 
 	DECLARE_ACCEPTOR;
 
@@ -281,7 +283,7 @@ public:
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str) const;
 
-    void add_child (Node::Base::Ptr&& node, bool negate) { TaggedChildSet::add_child ({ std::move (node), negate }); }
+	void add_child (Node::Base::Ptr&& node, bool negate) { TaggedChildSet::add_child ( TaggedChild<AdditionSubtractionTag> (std::move (node), negate)); }
 
 	Base::Ptr decay_move (Base::Ptr&& self);
 	void decay_assign (Base::Ptr& dest);
@@ -317,7 +319,7 @@ public:
 	virtual int priority() const;
 	virtual void Dump (std::ostream& str) const;
 
-    void add_child (Node::Base::Ptr&& node, bool reciprocate) { TaggedChildSet::add_child ({ std::move (node), reciprocate }); }
+	void add_child (Node::Base::Ptr&& node, bool reciprocate) { TaggedChildSet::add_child ( TaggedChild<MultiplicationDivisionTag> (std::move (node), reciprocate)); }
 
 	rational_t get_constant (bool release);
 	void insert_constant (rational_t value);
