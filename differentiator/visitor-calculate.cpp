@@ -43,7 +43,7 @@ boost::any Calculate::visit (const Node::Power& node)
 boost::any Calculate::visit (const Node::AdditionSubtraction& node)
 {
 	rational_t result_r (0);
-	data_t result_f;
+	data_t result_f (0);
 	bool is_rational = true;
 
 	for (auto& child: node.children()) {
@@ -78,7 +78,7 @@ boost::any Calculate::visit (const Node::AdditionSubtraction& node)
 boost::any Calculate::visit (const Node::MultiplicationDivision& node)
 {
 	rational_t result_r (1);
-	data_t result_f;
+	data_t result_f (1);
 	bool is_rational = true;
 
 	for (auto& child: node.children()) {
