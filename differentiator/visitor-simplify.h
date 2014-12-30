@@ -19,6 +19,13 @@ public:
 	virtual boost::any visit (const Node::Power& node);
 	virtual boost::any visit (const Node::AdditionSubtraction& node);
 	virtual boost::any visit (const Node::MultiplicationDivision& node);
+
+	struct Options
+	{
+		bool sum_fractions = true;
+	};
+
+	static Options options;
 };
 
 } // namespace Visitor

@@ -25,6 +25,7 @@ void addsub_decompose_fold_nested_single (rational_t& result_value, Decompositio
 void addsub_decompose_fold_nested_single_decomposed (rational_t& result_value, DecompositionMap& result, rational_t source_constant, DecompositionMap&& source); // source is muldiv-decomposed
 Node::Base::Ptr addsub_reconstruct (const rational_t& value, DecompositionMap&& terms);
 DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, DecompositionMap& fractions); // returns the computed common denominator
+Node::Base::Ptr addsub_reconstruct_common_multiplier (rational_t value, DecompositionMap&& terms);
 
 StrippedNode power_strip_exponent (Node::Base::Ptr&& node, bool reciprocate)
 {
@@ -112,6 +113,8 @@ Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data)
 
 void generic_fold_single (DecompositionMap& result, StrippedNode&& term)
 {
+	assert (term.second != 0);
+
 	auto r = result.emplace (std::move (term.first), term.second);
 	if (!r.second) {
 		/* fold -- sum up exponents/multipliers */
@@ -438,9 +441,46 @@ DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, De
 	return denominator_terms;
 }
 
+Node::Base::Ptr addsub_reconstruct_common_multiplier (rational_t value, DecompositionMap&& terms)
+{
+	if (Visitor::Simplify::options.sum_fractions) {
+		rational_t denominator_multiplier (1);
+		DecompositionMap denominator = addsub_multiply_by_common_denominator (value, terms);
+
+		if (denominator.empty()) {
+			return addsub_reconstruct (value, std::move (terms));
+		} else {
+			/* do that once again to get rid of nested fractions */
+			for (;;) {
+				DecompositionMap next_denominator = addsub_multiply_by_common_denominator (value, terms);
+				if (next_denominator.empty()) {
+					break;
+				}
+				/* terms of denominator can never be constants or muldiv nodes */
+				for (auto it = next_denominator.begin(); it != next_denominator.end(); ) {
+					auto term = take_map (next_denominator, it++);
+					generic_fold_single (denominator, std::move (term));
+				}
+			}
+
+			/* build numerator */
+			Node::Base::Ptr numerator = addsub_reconstruct (value, std::move (terms));
+
+			/* numerator can be a constant or a muldiv, so fold it properly */
+			muldiv_decompose_and_fold_nested_single (denominator_multiplier, denominator, std::move (numerator), false);
+
+			return muldiv_reconstruct (denominator_multiplier, std::move (denominator));
+		}
+	} else {
+		return addsub_reconstruct (value, std::move (terms));
+	}
+}
+
 } // anonymous namespace
 
 namespace Visitor {
+
+Simplify::Options Simplify::options;
 
 Simplify::Simplify (const std::string& variable)
 : simplification_variable_ (variable)
@@ -550,35 +590,7 @@ boost::any Simplify::visit (const Node::AdditionSubtraction& node)
 
 	addsub_decompose_and_fold_nested (*this, result_value, node_terms, node, false);
 
-	DecompositionMap denominator = addsub_multiply_by_common_denominator (result_value, node_terms);
-
-	if (denominator.empty()) {
-		return addsub_reconstruct (result_value, std::move (node_terms)).release();
-	} else {
-		/* do that once again to get rid of nested fractions */
-		for (;;) {
-			DecompositionMap next_denominator = addsub_multiply_by_common_denominator (result_value, node_terms);
-			if (next_denominator.empty()) {
-				break;
-			}
-			/* terms of denominator can never be constants or muldiv nodes */
-			for (auto it = next_denominator.begin(); it != next_denominator.end(); ) {
-				auto term = take_map (next_denominator, it++);
-				generic_fold_single (denominator, std::move (term));
-			}
-		}
-
-		/* build numerator */
-		Node::Base::Ptr numerator = addsub_reconstruct (result_value, std::move (node_terms));
-
-		/* now result_value is the multiplier */
-		result_value = rational_t (1);
-
-		/* numerator can be a constant or a muldiv, so fold it properly */
-		muldiv_decompose_and_fold_nested_single (result_value, denominator, std::move (numerator), false);
-
-		return muldiv_reconstruct (result_value, std::move (denominator)).release();
-	}
+	return addsub_reconstruct_common_multiplier (result_value, std::move (node_terms)).release();
 }
 
 } // namespace Visitor
