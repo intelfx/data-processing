@@ -8,6 +8,10 @@ add_executable (calculator
                 main.cpp)
 target_link_libraries (calculator expression)
 
+add_executable (taylor
+                main-taylor.cpp)
+target_link_libraries (taylor expression)
+
 install(TARGETS calculator
         RUNTIME DESTINATION bin)
 
