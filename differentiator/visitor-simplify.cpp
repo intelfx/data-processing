@@ -16,9 +16,11 @@ void generic_fold_single (DecompositionMap& result, StrippedNode&& term);
 
 void muldiv_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::MultiplicationDivision& node, bool node_reciprocation);
 void muldiv_decompose_and_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
+void muldiv_decompose_and_fold_nested_single_exponent (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, rational_t exponent);
 void muldiv_decompose_into_common_denominator (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
 void muldiv_decompose_no_fold (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
 Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& terms);
+void muldiv_expand_into_sum (rational_t& sum_constant, DecompositionMap& sum_terms, const rational_t& product_constant, DecompositionMap&& product_terms);
 
 void addsub_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, bool node_negation);
 void addsub_decompose_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, bool node_negation);
@@ -179,6 +181,26 @@ void muldiv_decompose_and_fold_nested_single (rational_t& result_value, Decompos
 	}
 }
 
+void muldiv_decompose_and_fold_nested_single_exponent (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, rational_t exponent)
+{
+	Node::Value* node_value = dynamic_cast<Node::Value*> (node.get());
+	Node::MultiplicationDivision* node_muldiv = dynamic_cast<Node::MultiplicationDivision*> (node.get());
+
+	if (node_value && (exponent.denominator() == 1)) {
+		result_value *= pow_frac (node_value->value(), exponent.numerator());
+	} else if (node_muldiv) {
+		for (auto it = node_muldiv->children().begin(); it != node_muldiv->children().end(); ) {
+			auto child = take_set (node_muldiv->children(), it++);
+			muldiv_decompose_and_fold_nested_single_exponent (result_value, result, std::move (child.node), child.tag.reciprocated ? -exponent : exponent);
+		}
+	} else {
+		/* insert child into the destination map, attempting folding */
+		StrippedNode term = power_strip_exponent (std::move (node), false);
+		term.second *= exponent;
+		generic_fold_single (result, std::move (term));
+	}
+}
+
 void muldiv_decompose_into_common_denominator (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation)
 {
 	assert (!dynamic_cast<Node::MultiplicationDivision*> (node.get()));
@@ -243,6 +265,68 @@ Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& 
 	} else {
 		/* we do not have any nodes besides the constant, return it directly */
 		return Node::Base::Ptr (new Node::Value (value));
+	}
+}
+
+void __muldiv_expand_into_sum_internal (rational_t& sum_constant, DecompositionMap& sum_terms, std::vector<std::pair<const Node::Base*, rational_t>>& scratchpad,
+                                        const rational_t& product_constant, DecompositionMap& product_terms, DecompositionMap::iterator current_product_term, integer_t current_exponent)
+{
+	if (current_product_term != product_terms.end()) {
+		/* if this node is an addsub with an integer exponent, then we recurse for each of its children as many times as its exponent is */
+		const Node::AdditionSubtraction* current_addsub = dynamic_cast<const Node::AdditionSubtraction*> (current_product_term->first.node.get());
+
+		if (current_addsub && (current_product_term->second.denominator() == 1)) {
+			for (const auto& child: current_addsub->children()) {
+				scratchpad.push_back (std::make_pair (child.node.get(), rational_t (1)));
+				if (current_exponent < current_product_term->second.numerator()) {
+					/* same addsub again */
+					__muldiv_expand_into_sum_internal (sum_constant, sum_terms, scratchpad, child.tag.negated ? -product_constant : product_constant, product_terms, current_product_term, current_exponent + 1);
+				} else {
+					/* next term */
+					__muldiv_expand_into_sum_internal (sum_constant, sum_terms, scratchpad, child.tag.negated ? -product_constant : product_constant, product_terms, std::next (current_product_term), 1);
+				}
+				scratchpad.pop_back();
+			}
+		} else {
+			scratchpad.push_back (std::make_pair (current_product_term->first.node.get(), current_product_term->second));
+			__muldiv_expand_into_sum_internal (sum_constant, sum_terms, scratchpad, product_constant, product_terms, std::next (current_product_term), 1);
+			scratchpad.pop_back();
+		}
+	} else {
+		/* we've reached the end, let's multiply all terms in the scratchpad, keep in mind they can be muldiv (but not nested) */
+		rational_t new_term_constant (1);
+		DecompositionMap new_term_result;
+
+		for (std::pair<const Node::Base*, rational_t>& term: scratchpad) {
+			muldiv_decompose_and_fold_nested_single_exponent (new_term_constant, new_term_result, term.first->clone(), term.second);
+		}
+
+		addsub_decompose_fold_nested_single_decomposed (sum_constant, sum_terms, product_constant * new_term_constant, std::move (new_term_result));
+	}
+}
+
+void muldiv_expand_into_sum (rational_t& sum_constant, DecompositionMap& sum_terms, const rational_t& product_constant, DecompositionMap&& product_terms)
+{
+	bool need_to_expand = false;
+
+	for (const auto& term: product_terms) {
+		if (term.second < 0) {
+			need_to_expand = false;
+			break;
+		}
+		const Node::AdditionSubtraction* term_addsub = dynamic_cast<const Node::AdditionSubtraction*> (term.first.node.get());
+		if (term_addsub) {
+			need_to_expand = true;
+		}
+	}
+
+	if (!need_to_expand) {
+		sum_constant = 0;
+		addsub_decompose_fold_nested_single_decomposed (sum_constant, sum_terms, product_constant, std::move (product_terms));
+	} else {
+		/* product: term -> exponent */
+		std::vector<std::pair<const Node::Base*, rational_t>> scratchpad;
+		__muldiv_expand_into_sum_internal (sum_constant, sum_terms, scratchpad, product_constant, product_terms, product_terms.begin(), 1);
 	}
 }
 
@@ -578,7 +662,18 @@ boost::any Simplify::visit (const Node::MultiplicationDivision& node)
 
 	muldiv_decompose_and_fold_nested (*this, result_value, node_terms, node, false);
 
-	return muldiv_reconstruct (result_value, std::move (node_terms)).release();
+	if (options.expand_product) {
+		rational_t expanded_value (0);
+
+		/* sum: term -> multiplier */
+		DecompositionMap expanded_terms;
+
+		muldiv_expand_into_sum (expanded_value, expanded_terms, result_value, std::move (node_terms));
+
+		return addsub_reconstruct_common_multiplier (expanded_value, std::move (expanded_terms)).release();
+	} else {
+		return muldiv_reconstruct (result_value, std::move (node_terms)).release();
+	}
 }
 
 boost::any Simplify::visit (const Node::AdditionSubtraction& node)

@@ -9,7 +9,6 @@ class Simplify : public Base
 	std::string simplification_variable_;
 
 public:
-
 	Simplify (const std::string& variable);
 	Simplify();
 
@@ -22,6 +21,7 @@ public:
 
 	struct Options
 	{
+		bool expand_product = false;
 		bool sum_fractions = true;
 	};
 
