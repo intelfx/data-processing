@@ -200,7 +200,7 @@ int main (int argc, char** argv)
 	 */
 
 	int option;
-	while ((option = getopt_long (argc, argv, "ml:n:qv:r:b:f:o:s:p:D:ES:T:", option_array, nullptr)) != -1) {
+	while ((option = getopt_long (argc, argv, "ml:n:qQv:r:b:f:o:s:p:D:ES:T:", option_array, nullptr)) != -1) {
 		switch (option) {
 		case ARG_MACHINE_OUTPUT:
 			parameters.output.machine.enabled = true;
