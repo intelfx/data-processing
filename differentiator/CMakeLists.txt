@@ -12,6 +12,12 @@ add_executable (taylor
                 main-taylor.cpp)
 target_link_libraries (taylor expression)
 
+add_custom_command (OUTPUT README.html
+                    COMMAND /usr/bin/pandoc ARGS --from markdown+definition_lists+compact_definition_lists --to html5 --standalone --smart "${CMAKE_CURRENT_SOURCE_DIR}/README.md" -o "README.html"
+                    MAIN_DEPENDENCY README.md)
+add_custom_target(build-documentation ALL
+                  DEPENDS README.html)
+
 install(TARGETS calculator
         RUNTIME DESTINATION bin)
 
