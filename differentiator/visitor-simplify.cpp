@@ -406,18 +406,8 @@ DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, De
 
 	/* insert the constant as an empty fraction */
 	if (constant != 0) {
-		/* what was the constant term in initial sum of fractions, becomes the multiplier for our current fraction */
-		rational_t fraction_constant = constant;
+		fractions_source.emplace_back (Node::TaggedChild<void>(), constant);
 		constant = 0;
-
-		/* product: term -> exponent */
-		DecompositionMap fraction_terms;
-
-		/* divide decomposed (empty) fraction by common denominator */
-		muldiv_divide_by_decomposed (fraction_terms, denominator_terms);
-
-		/* store the modified fraction */
-		addsub_decompose_fold_nested_single_decomposed (constant, fractions, fraction_constant, std::move (fraction_terms));
 	}
 
 	for (StrippedNode& fraction: fractions_source) {
@@ -425,15 +415,17 @@ DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, De
 		DecompositionMap fraction_terms;
 
 		/* decompose current fraction */
-		Node::MultiplicationDivision* fraction_muldiv = dynamic_cast<Node::MultiplicationDivision*> (fraction.first.node.get());
+		if (fraction.first.node) {
+			Node::MultiplicationDivision* fraction_muldiv = dynamic_cast<Node::MultiplicationDivision*> (fraction.first.node.get());
 
-		if (fraction_muldiv) {
-			for (auto it = fraction_muldiv->children().begin(); it != fraction_muldiv->children().end(); ) {
-				auto child = take_set (fraction_muldiv->children(), it++);
-				muldiv_decompose_no_fold (fraction_terms, std::move (child.node), child.tag.reciprocated);
+			if (fraction_muldiv) {
+				for (auto it = fraction_muldiv->children().begin(); it != fraction_muldiv->children().end(); ) {
+					auto child = take_set (fraction_muldiv->children(), it++);
+					muldiv_decompose_no_fold (fraction_terms, std::move (child.node), child.tag.reciprocated);
+				}
+			} else {
+				muldiv_decompose_no_fold (fraction_terms, std::move (fraction.first.node), false);
 			}
-		} else {
-			muldiv_decompose_no_fold (fraction_terms, std::move (fraction.first.node), false);
 		}
 
 		/* divide decomposed fraction by common denominator */
