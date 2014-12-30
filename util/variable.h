@@ -15,7 +15,8 @@ struct Variable
 
 	typedef std::map<std::string, Variable> Map;
 
-	static Map::value_type make (std::string name, data_t value, data_t error, bool do_not_substitute)
+	template <typename T>
+	static Map::value_type make (std::string name, T value, T error, bool do_not_substitute)
 	{
 		return {std::move (name), Variable { value, error, do_not_substitute }};
 	}
