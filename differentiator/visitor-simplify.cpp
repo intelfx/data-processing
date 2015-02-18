@@ -511,9 +511,15 @@ boost::any Simplify::visit (const Node::Variable& node)
 
 boost::any Simplify::visit (const Node::Function& node)
 {
-	std::ostringstream reason;
-	reason << "Simplify error: unknown function: '" << node.name() << "'";
-	throw std::runtime_error (reason.str());
+	std::cerr << "Simplify warning: unknown function: '" << node.name() << "'" << std::endl;
+
+	Node::Function::Ptr result (new Node::Function (node.name()));
+
+	for (const auto& child: node.children()) {
+		result->add_child (child.node->accept_ptr (*this));
+	}
+
+	return static_cast<Node::Base*> (result.release());
 }
 
 boost::any Simplify::visit (const Node::Power& node)
