@@ -23,9 +23,29 @@ boost::any Differentiate::visit (const Node::Variable& node)
 
 boost::any Differentiate::visit (const Node::Function& node)
 {
-	std::ostringstream reason;
-	reason << "Differentiate error: unknown function: '" << node.name() << "'";
-	throw std::runtime_error (reason.str());
+
+	typedef std::list<Node::TaggedChild<void>> Children;
+	typedef std::function<Node::Base*(Base&, const Children&)> Differentiator;
+
+	static std::unordered_map<std::string, Differentiator> differentiators {
+		{ "ln", [](Base& visitor, const Children& children) -> Node::Base* {
+			Node::MultiplicationDivision::Ptr result (new Node::MultiplicationDivision);
+
+			result->add_child (children.front().node->accept_ptr (visitor), false);
+			result->add_child (children.front().node->clone(), true);
+
+			return result.release();
+		} }
+	};
+
+	auto it = differentiators.find (node.name());
+	if (it != differentiators.end()) {
+			return it->second (*this, node.children());
+	} else {
+		std::ostringstream reason;
+		reason << "Differentiate error: unknown function: '" << node.name() << "'";
+		throw std::runtime_error (reason.str());
+	}
 }
 
 boost::any Differentiate::visit (const Node::AdditionSubtraction& node)

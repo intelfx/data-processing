@@ -8,12 +8,14 @@
 #include <utility>
 
 #include <initializer_list>
+#include <functional>
 #include <algorithm>
 #include <numeric>
 #include <vector>
 #include <map>
 #include <list>
 #include <set>
+#include <unordered_map>
 #include <cmath>
 #include <cstdlib>
 #include <cassert>

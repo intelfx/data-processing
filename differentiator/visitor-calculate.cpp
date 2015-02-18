@@ -14,9 +14,24 @@ boost::any Calculate::visit (const Node::Variable& node)
 
 boost::any Calculate::visit (const Node::Function& node)
 {
-	std::ostringstream reason;
-	reason << "Calculate error: unknown function: '" << node.name() << "'";
-	throw std::runtime_error (reason.str());
+	typedef std::list<Node::TaggedChild<void>> Children;
+	typedef std::function<boost::any(Base&, const Children&)> Calculator;
+
+	static std::unordered_map<std::string, Calculator> calculators {
+		{ "ln", [](Base& visitor, const Children& children) -> boost::any { return std::log (any_to_fp (children.front().node->accept (visitor))); } }
+	};
+
+	auto it = calculators.find (node.name());
+	if (it != calculators.end()) {
+		try {
+			return it->second (*this, node.children());
+		} catch (boost::bad_any_cast& e) {
+			return boost::any();
+		}
+	} else {
+		std::cerr << "Calculate warning: unknown function: '" << node.name() << "'";
+		return boost::any();
+	}
 }
 
 boost::any Calculate::visit (const Node::Power& node)
