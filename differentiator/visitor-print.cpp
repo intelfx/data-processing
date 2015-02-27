@@ -38,7 +38,7 @@ boost::any Print::parenthesized_visit (const Node::Base& parent, const Node::Bas
 void Print::maybe_print_multiplication (const Node::Base::Ptr& child)
 {
 	/* elide multiplication sign only we're outputting symbolic variable names */
-	if (substitute_ || dynamic_cast<Node::Value*> (child.get())) {
+	if (substitute_ || child->numeric_output()) {
 		stream_ << " * ";
 	} else {
 		stream_ << " ";
