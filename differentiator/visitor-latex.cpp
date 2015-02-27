@@ -5,9 +5,8 @@
 
 namespace {
 
-const std::string border_width = "2pt";
+const std::string border_width = "10pt";
 const std::string extra_left_border_width = "0pt";
-const std::string varwidth_limit = "30cm";
 
 void rational_to_latex (std::ostream& out, const rational_t& obj)
 {
@@ -85,20 +84,23 @@ LaTeX::Document::~Document()
 
 void LaTeX::Document::write_header()
 {
-	stream_ << "\\documentclass[border=" << border_width << ",varwidth=" << varwidth_limit << "]{standalone}" << std::endl
+	stream_ << "\\documentclass{minimal}" << std::endl
+	        << "\\usepackage[active,tightpage]{preview}" << std::endl
+	        << "\\renewcommand{\\PreviewBorder} {" << border_width << "}" << std::endl
 	        << "\\usepackage[fleqn]{amsmath}" << std::endl
 	        << "\\setlength {\\mathindent} {" << extra_left_border_width << "}" << std::endl
 	        << "\\begin{document}" << std::endl;
 
-	stream_ << "\\begin{align*}" << std::endl;
+	stream_ << "\\begin{preview}" << std::endl
+	        <<"\\begin{align*}" << std::endl;
 
 	first_in_document_ = true;
 }
 
 void LaTeX::Document::write_footer()
 {
-	stream_ << "}" << std::endl
-	        << "\\end{align*}" << std::endl
+	stream_ << "\\end{align*}" << std::endl
+	        << "\\end{preview}" << std::endl
 	        << "\\end{document}" << std::endl;
 }
 
@@ -107,46 +109,33 @@ LaTeX::LaTeX (std::ostream& stream, bool substitute)
 {
 }
 
-void LaTeX::Document::write_linebreaks()
-{
-	if (!first_in_document_) {
-		stream_ << " \\\\" << std::endl;
-	} else {
-		first_in_document_ = false;
-	}
-}
-
 void LaTeX::Document::write_equation_header (const std::string& name)
 {
-	if (!first_in_document_) {
-		stream_ << "}" << std::endl;
+	if (first_in_document_) {
+		stream_ << "\\intertext{}" << std::endl;
+		first_in_document_ = false;
 	}
 
 	stream_ << prepare_name (name);
-
 	first_in_document_ = true;
 }
 
 void LaTeX::Document::print_expression (Node::Base* tree, Base& visitor)
 {
-	write_linebreaks();
-
-	stream_ << " & ="; tree->accept (visitor);
+	stream_ << " & =";
+	tree->accept (visitor);
+	stream_ << " \\\\" << std::endl;
 }
 
 void LaTeX::Document::print_value (const boost::any& value)
 {
-	write_linebreaks();
-
 	stream_ << " & =";
 	any_to_latex_to_fp (stream_, value);
+	stream_ << " \\\\" << std::endl;
 }
 
 void LaTeX::Document::write_equation_footer()
 {
-	write_linebreaks();
-
-	stream_ << "\\intertext{" << std::endl;
 }
 
 void LaTeX::Document::print (const std::string& name, Node::Base* tree, bool substitute, const boost::any& value)

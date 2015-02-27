@@ -17,7 +17,6 @@ public:
 		void write_header();
 		void write_footer();
 
-		void write_linebreaks();
 		void write_equation_header (const std::string& name);
 		void write_equation_footer();
 
