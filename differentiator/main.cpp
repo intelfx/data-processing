@@ -466,6 +466,10 @@ int main (int argc, char** argv)
 
 	case Task::CalculateError:
 		for (Variable::Map::value_type& var: variables) {
+			if (var.second.no_error()) {
+				continue;
+			}
+
 			differentials.insert (Differential (var.first, 1));
 		}
 		break;
@@ -817,10 +821,10 @@ int main (int argc, char** argv)
 			// Per the task requirement
 			print_expression_terse (std::cout, series.tree.get());
 		} else {
-			std::cout << parameters.output.machine.name << " " << (expression.value.empty() ? any_to_fp (expression.value) : NAN);
+			std::cout << parameters.output.machine.name << " " << (expression.value.empty() ? NAN : any_to_fp (expression.value));
 
 			if (parameters.task.type == Task::CalculateError) {
-				std::cout << " " << (error.value.empty() ? any_to_fp (error.value) : NAN);
+				std::cout << " " << (error.value.empty() ? NAN : any_to_fp (error.value));
 			}
 		}
 
