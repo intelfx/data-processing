@@ -38,6 +38,7 @@ public:
 	virtual ~Base();
 
 	virtual int priority() const = 0;
+	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const = 0;
 
 	DECLARE_ACCEPTOR = 0;
@@ -156,6 +157,7 @@ public:
 	void set_value (rational_t value) { value_ = value; }
 
 	virtual int priority() const;
+	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
@@ -237,6 +239,7 @@ public:
 	typedef std::unique_ptr<Power> Ptr;
 
 	virtual int priority() const;
+	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const;
 
     void set_base (Node::Base::Ptr&& node) { base_ = std::move (node); }
