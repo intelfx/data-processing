@@ -9,7 +9,7 @@ typedef std::pair<Node::TaggedChild<void>, rational_t> StrippedNode;
 StrippedNode power_strip_exponent (Node::Base::Ptr&& node, bool reciprocate);
 Node::Base::Ptr power_add_exponent (StrippedNode&& node_data);
 
-StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, bool negate);
+StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, rational_t premultiplier);
 Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data);
 
 void generic_fold_single (DecompositionMap& result, StrippedNode&& term);
@@ -18,11 +18,15 @@ void muldiv_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& r
 void muldiv_decompose_and_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
 void muldiv_decompose_into_common_denominator (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
 void muldiv_decompose_no_fold (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation);
+
 Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& terms);
 
-void addsub_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, bool node_negation);
-void addsub_decompose_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, bool node_negation);
-void addsub_decompose_fold_nested_single_decomposed (rational_t& result_value, DecompositionMap& result, rational_t source_constant, DecompositionMap&& source); // source is muldiv-decomposed
+void addsub_decompose_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, rational_t node_multiplier);
+void addsub_decompose_fold_nested_addsub (rational_t& result_value, DecompositionMap& result, Node::AdditionSubtraction* node, rational_t node_multiplier);
+void addsub_decompose_fold_nested_muldiv_decomposed (rational_t& result_value, DecompositionMap& result, DecompositionMap&& source, rational_t source_constant); // source is muldiv-decomposed
+void addsub_decompose_fold_nested_single_simplify (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::Base& node, rational_t node_multiplier);
+void addsub_decompose_fold_nested_addsub_simplify (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, rational_t node_multiplier);
+
 Node::Base::Ptr addsub_reconstruct (const rational_t& value, DecompositionMap&& terms);
 DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, DecompositionMap& fractions); // returns the computed common denominator
 Node::Base::Ptr addsub_reconstruct_common_multiplier (rational_t value, DecompositionMap&& terms);
@@ -69,7 +73,7 @@ Node::Base::Ptr power_add_exponent (StrippedNode&& node_data)
 	}
 }
 
-StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, bool negate)
+StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, rational_t premultiplier)
 {
 	StrippedNode result;
 
@@ -82,9 +86,7 @@ StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, bool negate)
 		result.first.node = std::move (node);
 	}
 
-	if (negate) {
-		result.second = -result.second;
-	}
+	result.second *= premultiplier;
 
 	assert (result.second != 0);
 
@@ -246,68 +248,62 @@ Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& 
 	}
 }
 
-void addsub_decompose_and_fold_nested (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, bool node_negation)
+void addsub_decompose_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, rational_t node_multiplier)
 {
-	for (const auto& child: node.children()) {
-		bool negation = child.tag.negated ^ node_negation;
-		Node::Base::Ptr simplified (child.node->accept_ptr (visitor));
-		Node::Value* simplified_value = dynamic_cast<Node::Value*> (simplified.get());
-		Node::AdditionSubtraction* simplified_addsub = dynamic_cast<Node::AdditionSubtraction*> (simplified.get());
+	Node::Value* node_value = dynamic_cast<Node::Value*> (node.get());
 
-		if (simplified_value) {
-			if (negation) {
-				result_value -= simplified_value->value();
-			} else {
-				result_value += simplified_value->value();
-			}
-		} else if (simplified_addsub) {
-			addsub_decompose_and_fold_nested (visitor, result_value, result, *simplified_addsub, negation);
+	if (node_value) {
+		result_value += node_value->value() * node_multiplier;
+	} else {
+		/* insert child into the destination map, attempting folding */
+		StrippedNode term = muldiv_strip_multiplier (std::move (node), node_multiplier);
+		Node::AdditionSubtraction* term_addsub = dynamic_cast<Node::AdditionSubtraction*> (term.first.node.get());
+
+		if (term_addsub) {
+			addsub_decompose_fold_nested_addsub (result_value, result, term_addsub, term.second);
 		} else {
-			/* insert child into the destination map, attempting folding */
-			StrippedNode term = muldiv_strip_multiplier (std::move (simplified), negation);
 			generic_fold_single (result, std::move (term));
 		}
 	}
 }
 
-void addsub_decompose_fold_nested_single (rational_t& result_value, DecompositionMap& result, Node::Base::Ptr&& node, bool node_negation)
+void addsub_decompose_fold_nested_addsub (rational_t& result_value, DecompositionMap& result, Node::AdditionSubtraction* node, rational_t node_multiplier)
 {
-	Node::Value* node_value = dynamic_cast<Node::Value*> (node.get());
-	Node::AdditionSubtraction* node_addsub = dynamic_cast<Node::AdditionSubtraction*> (node.get());
-
-	if (node_value) {
-		if (node_negation) {
-			result_value -= node_value->value();
-		} else {
-			result_value += node_value->value();
-		}
-	} else if (node_addsub) {
-		for (auto it = node_addsub->children().begin(); it != node_addsub->children().end(); ) {
-			auto child = take_set (node_addsub->children(), it++);
-			addsub_decompose_fold_nested_single (result_value, result, std::move (child.node), child.tag.negated ^ node_negation);
-		}
-	} else {
-		/* insert child into the destination map, attempting folding */
-		StrippedNode term = muldiv_strip_multiplier (std::move (node), node_negation);
-		generic_fold_single (result, std::move (term));
+	for (auto it = node->children().begin(); it != node->children().end(); ) {
+		auto child = take_set (node->children(), it++);
+		addsub_decompose_fold_nested_single (result_value, result, std::move (child.node), child.tag.negated ? -node_multiplier : node_multiplier);
 	}
 }
 
-void addsub_decompose_fold_nested_single_decomposed (rational_t& result_value, DecompositionMap& result, rational_t source_constant, DecompositionMap&& source)
+void addsub_decompose_fold_nested_single_simplify (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::Base& node, rational_t node_multiplier)
+{
+	const Node::Value* node_value = dynamic_cast<const Node::Value*> (&node);
+	const Node::AdditionSubtraction* node_addsub = dynamic_cast<const Node::AdditionSubtraction*> (&node);
+
+	if (node_value) {
+		result_value += node_value->value() * node_multiplier;
+	} else if (node_addsub) {
+		/* this is an optimization to go without simplifying while we can go deeper */
+		addsub_decompose_fold_nested_addsub_simplify (visitor, result_value, result, *node_addsub, node_multiplier);
+	} else {
+		/* here we actually call the simplifier (which duplicates the subtree) and pass control to the non-const version */
+		addsub_decompose_fold_nested_single (result_value, result, node.accept_ptr (visitor), node_multiplier);
+	}
+}
+
+void addsub_decompose_fold_nested_addsub_simplify (Visitor::Simplify& visitor, rational_t& result_value, DecompositionMap& result, const Node::AdditionSubtraction& node, rational_t node_multiplier)
+{
+	for (const auto& child: node.children()) {
+		addsub_decompose_fold_nested_single_simplify (visitor, result_value, result, *child.node, child.tag.negated ? -node_multiplier : node_multiplier);
+	}
+}
+
+void addsub_decompose_fold_nested_muldiv_decomposed (rational_t& result_value, DecompositionMap& result, DecompositionMap&& source, rational_t source_constant)
 {
 	if (source.empty()) {
 		result_value += source_constant;
-	} else if (abs (source_constant) == 1) {
-		/* reconstruct node (as muldiv) and attempt to decompose it (into addsub) -- may succeed if there is only one term */
-		Node::Base::Ptr node = muldiv_reconstruct (rational_t (1), std::move (source));
-		bool node_negation = (source_constant < 0);
-		addsub_decompose_fold_nested_single (result_value, result, std::move (node), node_negation);
 	} else {
-		/* constant is non-1, so decomposition would never succeed, so take a shortcut instead of creating+deleting a muldiv node */
-		StrippedNode term;
-		term.first.node = muldiv_reconstruct (rational_t (1), std::move (source));
-		term.second = source_constant;
-		generic_fold_single (result, std::move (term));
+		addsub_decompose_fold_nested_single (result_value, result, muldiv_reconstruct (rational_t (1), std::move (source)), source_constant);
 	}
 }
 
@@ -435,7 +431,7 @@ DecompositionMap addsub_multiply_by_common_denominator (rational_t& constant, De
 		muldiv_divide_by_decomposed (fraction_terms, denominator_terms);
 
 		/* store the modified fraction */
-		addsub_decompose_fold_nested_single_decomposed (constant, fractions, fraction.second, std::move (fraction_terms));
+		addsub_decompose_fold_nested_muldiv_decomposed (constant, fractions, std::move (fraction_terms), fraction.second);
 	}
 
 	return denominator_terms;
@@ -594,7 +590,7 @@ boost::any Simplify::visit (const Node::AdditionSubtraction& node)
 	/* sum: term -> multiplier */
 	DecompositionMap node_terms;
 
-	addsub_decompose_and_fold_nested (*this, result_value, node_terms, node, false);
+	addsub_decompose_fold_nested_addsub_simplify (*this, result_value, node_terms, node, rational_t (1));
 
 	return addsub_reconstruct_common_multiplier (result_value, std::move (node_terms)).release();
 }
