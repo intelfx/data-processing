@@ -42,9 +42,7 @@ boost::any Differentiate::visit (const Node::Function& node)
 	if (it != differentiators.end()) {
 			return it->second (*this, node.children());
 	} else {
-		std::ostringstream reason;
-		reason << "Differentiate error: unknown function: '" << node.name() << "'";
-		throw std::runtime_error (reason.str());
+		ERROR (std::runtime_error, "Differentiate error: unknown function: '" << node.name() << "'");
 	}
 }
 
@@ -132,9 +130,7 @@ boost::any Differentiate::visit (const Node::Power& node)
 
 	const Node::Value* exponent_value = dynamic_cast<const Node::Value*> (exponent.get());
 	if (!exponent_value) {
-		std::ostringstream reason;
-		reason << "Differentiate error: sorry, unimplemented: exponent is not a constant";
-		throw std::runtime_error (reason.str());
+		ERROR (std::runtime_error, "Differentiate error: sorry, unimplemented: exponent is not a constant");
 	}
 
 	/* f^(a-1) */

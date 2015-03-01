@@ -75,9 +75,8 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 		}
 	}
 
-	std::ostringstream reason;
-	reason << "Parse error: unknown character: '" << *it << "'";
-	throw std::runtime_error (reason.str());
+
+	ERROR (std::runtime_error, "Parse error: unknown character: '" << *it << "'");
 }
 
 void LexerIterator::next()

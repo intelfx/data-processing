@@ -237,9 +237,7 @@ int main (int argc, char** argv)
 			ss >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Wrong variable specifier: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Wrong variable specifier: '" << optarg << "'");
 			}
 
 			break;
@@ -251,9 +249,7 @@ int main (int argc, char** argv)
 			ss >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Wrong rational variable specifier: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Wrong rational variable specifier: '" << optarg << "'");
 			}
 
 			break;
@@ -265,9 +261,7 @@ int main (int argc, char** argv)
 			ss >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Wrong bare variable specifier: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Wrong bare variable specifier: '" << optarg << "'");
 			}
 
 			break;
@@ -282,9 +276,7 @@ int main (int argc, char** argv)
 			ss >> parameters.task.differentiate.order >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Could not parse the derivative order: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Could not parse the derivative order: '" << optarg << "'");
 			}
 
 			break;
@@ -295,9 +287,7 @@ int main (int argc, char** argv)
 			ss >> parameters.task.series.length >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Could not parse the series length: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Could not parse the series length: '" << optarg << "'");
 			}
 
 			break;
@@ -308,27 +298,25 @@ int main (int argc, char** argv)
 			ss >> parameters.task.series.point >> std::ws;
 
 			if (ss.fail() || !ss.eof()) {
-				std::ostringstream reason;
-				reason << "Could not parse the series point: '" << optarg << "'";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Could not parse the series point: '" << optarg << "'");
 			}
 
 			break;
 		}
 
 		case ARG_MODE_DIFFERENTIATE:
-			assert (parameters.task.type == Task::None);
+			ASSERT (parameters.task.type == Task::None, "Mode set twice");
 			parameters.task.type = Task::Differentiate;
 			parameters.task.differentiate.variable = optarg;
 			break;
 
 		case ARG_MODE_FIND_ERROR:
-			assert (parameters.task.type == Task::None);
+			ASSERT (parameters.task.type == Task::None, "Mode set twice");
 			parameters.task.type = Task::CalculateError;
 			break;
 
 		case ARG_MODE_SIMPLIFY:
-			assert (parameters.task.type == Task::None);
+			ASSERT (parameters.task.type == Task::None, "Mode set twice");
 			parameters.task.type = Task::Simplify;
 			if (optarg && optarg[0]) {
 				parameters.task.simplify.variable = optarg;
@@ -336,7 +324,7 @@ int main (int argc, char** argv)
 			break;
 
 		case ARG_MODE_TAYLOR_SERIES:
-			assert (parameters.task.type == Task::None);
+			ASSERT (parameters.task.type == Task::None, "Mode set twice");
 			parameters.task.type = Task::Series;
 			parameters.task.series.variable = optarg;
 			break;
@@ -488,7 +476,7 @@ int main (int argc, char** argv)
 		const Differential& d = *it;
 
 		d.expression.tree = differentiate (expression.tree.get(), d.variable, d.order);
-		d.expression.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << d.order << " for variable '" << d.variable << "'").str().c_str(), parameters.output.common.quiet);
+		d.expression.compute (BUILD_STRING ("differential of order " << d.order << " for variable '" << d.variable << "'").c_str(), parameters.output.common.quiet);
 
 		Node::Value* differential_value = dynamic_cast<Node::Value*> (d.expression.tree.get());
 		if (differential_value && (differential_value->value() == 0)) {
@@ -508,18 +496,10 @@ int main (int argc, char** argv)
 		Node::AdditionSubtraction::Ptr error_sq_sum (new Node::AdditionSubtraction);
 
 		for (const Differential& d: differentials) {
-			if (d.order != 1) {
-				std::ostringstream reason;
-				reason << "Differential for variable '" << d.variable << "' has unexpected order (" << d.order << ") while computing error";
-				throw std::logic_error (reason.str());
-			}
+			ASSERT (d.order == 1, "Differential for variable '" << d.variable << "' has unexpected order (" << d.order << ") while computing error");
 
 			auto var = variables.find (d.variable);
-			if (var == variables.end()) {
-				std::ostringstream reason;
-				reason << "Cannot find variable '" << d.variable << "' while computing error, despite differential exists";
-				throw std::logic_error (reason.str());
-			}
+			ASSERT (var != variables.end(), "Cannot find variable '" << d.variable << "' while computing error, despite differential exists");
 
 			if (var->second.no_error()) {
 				continue;
@@ -558,11 +538,7 @@ int main (int argc, char** argv)
 
 	if (parameters.task.type == Task::Series) {
 		auto var = variables.find (parameters.task.series.variable);
-		if (var == variables.end()) {
-			std::ostringstream reason;
-			reason << "Cannot find variable '" << parameters.task.series.variable << "' while computing Taylor series";
-			throw std::runtime_error (reason.str());
-		}
+		VERIFY (var != variables.end(), std::runtime_error, "Cannot find variable '" << parameters.task.series.variable << "' while computing Taylor series");
 
 		Node::AdditionSubtraction::Ptr sum (new Node::AdditionSubtraction);
 		Visitor::Calculate calculator;
@@ -584,9 +560,7 @@ int main (int argc, char** argv)
 		var->second.value = parameters.task.series.point;
 
 		if (parameters.task.series.point != 0) {
-			std::ostringstream reason;
-			reason << "Sorry, unimplemented: building the Taylor series for non-zero point " << parameters.task.series.point;
-			throw std::runtime_error (reason.str());
+			ERROR (std::runtime_error, "Sorry, unimplemented: building the Taylor series for non-zero point " << parameters.task.series.point);
 		}
 
 		for (;;) {
@@ -595,12 +569,10 @@ int main (int argc, char** argv)
 			 * Add the next term to the Taylor series, if it is non-zero.
 			 */
 
-			derivative.compute (static_cast<std::ostringstream&&> (std::ostringstream() << "differential of order " << current_order << " for variable '" << parameters.task.series.variable << "'").str().c_str(), parameters.output.common.quiet);
+			derivative.compute (BUILD_STRING ("differential of order " << current_order << " for variable '" << parameters.task.series.variable << "'").c_str(), parameters.output.common.quiet);
 
 			if (!any_isa<rational_t> (derivative.value)) {
-				std::ostringstream reason;
-				reason << "Cannot build the Taylor series: derivative of order " << current_order << " is not rational or cannot be computed";
-				throw std::runtime_error (reason.str());
+				ERROR (std::runtime_error, "Cannot build the Taylor series: derivative of order " << current_order << " is not rational or cannot be computed");
 			}
 
 			rational_t multiplier = any_to_rational (derivative.value) / denominator;
@@ -702,9 +674,7 @@ int main (int argc, char** argv)
 			if (d.order == 1) {
 				name = "d" + parameters.output.common.name + "/d" + d.variable;
 			} else {
-				std::ostringstream builder;
-				builder << "d^" << d.order << parameters.output.common.name << "/d" << d.variable << "^" << d.order;
-				name = builder.str();
+				name = BUILD_STRING ("d^" << d.order << parameters.output.common.name << "/d" << d.variable << "^" << d.order);
 			}
 
 			print_expression_aligned (std::cerr,
@@ -785,10 +755,8 @@ int main (int argc, char** argv)
 				name = "\\frac {\\partial " + Visitor::LaTeX::prepare_name (parameters.output.latex.name) + "}"
 			                 " {\\partial " + Visitor::LaTeX::prepare_name (d.variable) + "}";
 			} else {
-				std::ostringstream builder;
-				builder << "\\frac {\\partial ^ {" << d.order << "} " << Visitor::LaTeX::prepare_name (parameters.output.latex.name) << "}"
-				        <<        "{\\partial " << d.variable << " ^ {" << d.order << "} }";
-				name = builder.str();
+				name = BUILD_STRING ("\\frac {\\partial ^ {" << d.order << "} " << Visitor::LaTeX::prepare_name (parameters.output.latex.name) << "}" <<
+				                            "{\\partial " << d.variable << " ^ {" << d.order << "} }");
 			}
 
 			latex_document->print (name,

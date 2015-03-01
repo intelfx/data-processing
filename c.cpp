@@ -52,6 +52,6 @@ int main (int argc, char** argv)
 
 		boost::any value = fraction->accept (calculate);
 
-		doc.print (static_cast<std::ostringstream&&> (std::ostringstream() << "\\dbinom {" << N << "} {" << K << "}").str(), fraction.get(), true, value);
+		doc.print (BUILD_STRING ("\\dbinom {" << N << "} {" << K << "}"), fraction.get(), true, value);
 	}
 }

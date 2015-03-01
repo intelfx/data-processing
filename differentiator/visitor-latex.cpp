@@ -58,14 +58,10 @@ namespace Visitor
 {
 
 LaTeX::Document::Document (const char* file)
-: first_in_document_ (true)
+: latex_render_command_ (BUILD_STRING ("pdflatex -halt-on-error " << "\"" << file << "\" >/dev/null"))
+, first_in_document_ (true)
 {
 	open (stream_, file);
-
-	std::ostringstream latex_render_command_builder;
-	latex_render_command_builder << "pdflatex -halt-on-error " << "\"" << file << "\" >/dev/null";
-	latex_render_command_ = latex_render_command_builder.str();
-
 	write_header();
 }
 
@@ -76,9 +72,7 @@ LaTeX::Document::~Document()
 
 	int exitcode = system (latex_render_command_.c_str());
 	if (exitcode) {
-		std::ostringstream err;
-		err << "LaTeX renderer exited with non-zero exit code: " << exitcode;
-		throw std::runtime_error (err.str());
+		VERIFY (!exitcode, std::runtime_error, "LaTeX renderer exited with non-zero exit code: " << exitcode);
 	}
 }
 

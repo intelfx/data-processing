@@ -52,9 +52,7 @@ int main()
 		boost::any derivative_value = derivative->accept (calculator);
 
 		if (!any_isa<rational_t> (derivative_value)) {
-			std::ostringstream reason;
-			reason << "Cannot build the Taylor series: derivative of order " << current_order << " is not rational or cannot be computed";
-			throw std::runtime_error (reason.str());
+			ERROR (std::runtime_error, "Cannot build the Taylor series: derivative of order " << current_order << " is not rational or cannot be computed");
 		}
 
 		rational_t multiplier = any_to_rational (derivative_value) / denominator;

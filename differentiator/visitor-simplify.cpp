@@ -48,14 +48,14 @@ StrippedNode power_strip_exponent (Node::Base::Ptr&& node, bool reciprocate)
 		result.second = -result.second;
 	}
 
-	assert (result.second != 0);
+	ASSERT (result.second != 0, "Zero exponent encountered in tree");
 
 	return result;
 }
 
 Node::Base::Ptr power_add_exponent (StrippedNode&& node_data)
 {
-	assert (node_data.second != 0);
+	ASSERT (node_data.second != 0, "Zero exponent when building node");
 
 	if (node_data.second == 1) {
 		return std::move (node_data.first.node);
@@ -88,14 +88,14 @@ StrippedNode muldiv_strip_multiplier (Node::Base::Ptr&& node, rational_t premult
 
 	result.second *= premultiplier;
 
-	assert (result.second != 0);
+	ASSERT (result.second != 0, "Zero multiplier encountered in tree");
 
 	return result;
 }
 
 Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data)
 {
-	assert (node_data.second != 0);
+	ASSERT (node_data.second != 0, "Zero multiplier while building node");
 
 	if (node_data.second == 1) {
 		return std::move (node_data.first.node);
@@ -115,7 +115,7 @@ Node::Base::Ptr muldiv_add_multiplier (StrippedNode&& node_data)
 
 void generic_fold_single (DecompositionMap& result, StrippedNode&& term)
 {
-	assert (term.second != 0);
+	ASSERT (term.second != 0, "Zero multiplier/exponent when folding");
 
 	auto r = result.emplace (std::move (term.first), term.second);
 	if (!r.second) {
@@ -183,8 +183,8 @@ void muldiv_decompose_and_fold_nested_single (rational_t& result_value, Decompos
 
 void muldiv_decompose_into_common_denominator (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation)
 {
-	assert (!dynamic_cast<Node::MultiplicationDivision*> (node.get()));
-	assert (!dynamic_cast<Node::Value*> (node.get()));
+	ASSERT (!dynamic_cast<Node::MultiplicationDivision*> (node.get()), "MultiplicationDivision node encountered as a child of a MultiplicationDivision node");
+	ASSERT (!dynamic_cast<Node::Value*> (node.get()), "Value node encountered as a child of a MultiplicationDivision node");
 
 	StrippedNode term = power_strip_exponent (std::move (node), node_reciprocation);
 	if (term.second < 0) {
@@ -199,12 +199,12 @@ void muldiv_decompose_into_common_denominator (DecompositionMap& result, Node::B
 
 void muldiv_decompose_no_fold (DecompositionMap& result, Node::Base::Ptr&& node, bool node_reciprocation)
 {
-	assert (!dynamic_cast<Node::MultiplicationDivision*> (node.get()));
-	assert (!dynamic_cast<Node::Value*> (node.get()));
+	ASSERT (!dynamic_cast<Node::MultiplicationDivision*> (node.get()), "MultiplicationDivision node encountered as a child of a MultiplicationDivision node");
+	ASSERT (!dynamic_cast<Node::Value*> (node.get()), "Value node encountered as a child of a MultiplicationDivision node");
 
 	StrippedNode term = power_strip_exponent (std::move (node), node_reciprocation);
 	auto r = result.emplace (std::move (term.first), term.second);
-	assert (r.second);
+	ASSERT (r.second, "Term already exists in the decomposed map -- should be doing decomposition with folding instead");
 }
 
 Node::Base::Ptr muldiv_reconstruct (const rational_t& value, DecompositionMap&& terms)

@@ -10,9 +10,7 @@ Node::Base::Ptr Parser::parse()
 {
 	Node::Base::Ptr result = get_toplevel();
 	if (current_) {
-		std::ostringstream reason;
-		reason << "Parse error: " << current_ << ": expected end of input";
-		throw std::runtime_error (reason.str());
+		ERROR (std::runtime_error, "Parse error: " << current_ << ": expected end of input");
 	}
 	return result;
 }
@@ -88,9 +86,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 {
 	/* end of expression */
 	if (!current_) {
-		std::ostringstream reason;
-		reason << "Parse error: " << current_ << ": expected expression";
-		throw std::runtime_error (reason.str());
+		ERROR (std::runtime_error, "Parse error: " << current_ << ": expected expression");
 	}
 
 	/* sub-expression */
@@ -99,9 +95,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 		if (current_.check_and_advance (")")) {
 			return sub_expr;
 		} else {
-			std::ostringstream reason;
-			reason << "Parse error: " << current_ << ": expected closing parenthesis";
-			throw std::runtime_error (reason.str());
+			ERROR (std::runtime_error, "Parse error: " << current_ << ": expected closing parenthesis");
 		}
 	}
 
@@ -114,9 +108,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 
 	/* function or variable */
 	if (current_.get_class() != LexerIterator::Classification::Alphabetical) {
-			std::ostringstream reason;
-			reason << "Parse error: " << current_ << ": symbol expected";
-			throw std::runtime_error (reason.str());
+			ERROR (std::runtime_error, "Parse error: " << current_ << ": symbol expected");
 	}
 
 	std::string name = *current_;
@@ -137,9 +129,7 @@ Node::Base::Ptr Parser::get_sub_expr()
 		if (current_.check_and_advance (")")) {
 			return std::move (node);
 		} else {
-			std::ostringstream reason;
-			reason << "Parse error: " << current_ << ": expected closing parenthesis";
-			throw std::runtime_error (reason.str());
+			ERROR (std::runtime_error, "Parse error: " << current_ << ": expected closing parenthesis");
 		}
 	}
 
@@ -149,8 +139,6 @@ Node::Base::Ptr Parser::get_sub_expr()
 		++current_;
 		return Node::Variable::Ptr (new Node::Variable (it->first, it->second, false));
 	} else {
-		std::ostringstream reason;
-		reason << "Parse error: unknown variable: '" << *current_ << "'";
-		throw std::runtime_error (reason.str());
+		ERROR (std::runtime_error, "Parse error: unknown variable: '" << *current_ << "'");
 	}
 }
