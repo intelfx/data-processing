@@ -25,8 +25,8 @@ void fp_to_latex (std::ostream& out, data_t value)
 	std::string str = ss.str();
 
 	if (str.find ('e') != std::string::npos) {
-		std::regex exponent_replace_re ("e(-)?0*([0-9]*)", std::regex::extended);
-		out << "(" << std::regex_replace (str, exponent_replace_re, " * 10^{\\1\\2}", std::regex_constants::format_sed) << ")";
+		std::regex exponent_replace_re ("e(\\+|(-))?0*([0-9]*)", std::regex::extended);
+		out << "(" << std::regex_replace (str, exponent_replace_re, " * 10^{\\2\\3}", std::regex_constants::format_sed) << ")";
 	} else {
 		out << str;
 	}
