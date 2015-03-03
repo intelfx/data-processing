@@ -41,13 +41,17 @@ void any_to_latex (std::ostream& out, const boost::any& obj)
 	}
 }
 
-void any_to_latex_to_fp (std::ostream& out, const boost::any& obj)
+void any_to_latex_decorated (std::ostream& out, const boost::any& obj)
 {
 	if (const rational_t* val = boost::any_cast<rational_t> (&obj)) {
+		out << "= ";
 		rational_to_latex (out, *val);
-		out << " \\approx ";
-		fp_to_latex (out, to_fp (*val));
+		if (val->denominator() != 1) {
+			out << " \\approx ";
+			fp_to_latex (out, to_fp (*val));
+		}
 	} else {
+		out << "\\approx ";
 		fp_to_latex (out, any_to_fp (obj));
 	}
 }
@@ -123,8 +127,8 @@ void LaTeX::Document::print_expression (Node::Base* tree, Base& visitor)
 
 void LaTeX::Document::print_value (const boost::any& value)
 {
-	stream_ << " & =";
-	any_to_latex_to_fp (stream_, value);
+	stream_ << " & "; // the assignment is written by any_to_latex_decorated()
+	any_to_latex_decorated (stream_, value);
 	stream_ << " \\\\" << std::endl;
 }
 
