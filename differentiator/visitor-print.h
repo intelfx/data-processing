@@ -11,7 +11,8 @@ protected:
 	bool substitute_;
 	const std::string paren_left_, paren_right_;
 
-	boost::any parenthesized_visit (const Node::Base& node, const Node::Base::Ptr& child);
+	boost::any parenthesized_visit (Node::Priority parent_priority, const Node::Base::Ptr& child);
+	boost::any parenthesized_visit (const Node::Base& parent, const Node::Base::Ptr& child);
 	void maybe_print_multiplication (const Node::Base::Ptr& child);
 
 public:

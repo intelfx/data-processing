@@ -18,9 +18,9 @@ Print::Print (std::ostream& stream, bool substitute, std::string paren_left, std
 {
 }
 
-boost::any Print::parenthesized_visit (const Node::Base& parent, const Node::Base::Ptr& child)
+boost::any Print::parenthesized_visit (Node::Priority parent_priority, const Node::Base::Ptr& child)
 {
-	bool need_parentheses = (child->priority() <= parent.priority());
+	bool need_parentheses = (child->priority() <= parent_priority);
 
 	if (need_parentheses) {
 		stream_ << paren_left_;
@@ -33,6 +33,12 @@ boost::any Print::parenthesized_visit (const Node::Base& parent, const Node::Bas
 	}
 
 	return ret;
+}
+
+
+boost::any Print::parenthesized_visit (const Node::Base& parent, const Node::Base::Ptr& child)
+{
+	return parenthesized_visit (parent.priority(), child);
 }
 
 void Print::maybe_print_multiplication (const Node::Base::Ptr& child)
@@ -85,9 +91,34 @@ boost::any Print::visit (const Node::Function& node)
 
 boost::any Print::visit (const Node::Power& node)
 {
-	parenthesized_visit (node, node.get_base());
-	stream_ << "^";
-	parenthesized_visit (node, node.get_exponent());
+	const Node::Base::Ptr &base = node.get_base(),
+	                      &exponent = node.get_exponent();
+
+	const Node::Value* exponent_value = dynamic_cast<const Node::Value*> (exponent.get());
+
+	if (exponent_value &&
+	    exponent_value->value().numerator() == 1) {
+		integer_t denominator = exponent_value->value().denominator();
+		if (denominator == 2) {
+			stream_ << "sqrt(";
+		} else if (denominator == 3) {
+			stream_ << "cbrt(";
+		} else {
+			stream_ << "root[" << denominator << "](";
+		}
+		/* skip parenthesizing anything because { .. } are effectively parentheses */
+		base->accept (*this);
+		stream_ << ")";
+	} else if (exponent_value &&
+	           exponent_value->value() == rational_t (-1)) {
+		stream_ << "1 / ";
+		/* parenthesize as if we were a muldiv node */
+		parenthesized_visit (Node::MultiplicationDivision::priority_static(), base);
+	} else {
+		parenthesized_visit (node, node.get_base());
+		stream_ << "^";
+		parenthesized_visit (node, node.get_exponent());
+	}
 
 	return boost::any();
 }
