@@ -207,6 +207,12 @@ boost::any LaTeX::visit (const Node::Power& node)
 		/* skip parenthesizing anything because { .. } are effectively parentheses */
 		base->accept (*this);
 		stream_ << "}";
+	} else if (exponent_value &&
+	           exponent_value->value() == rational_t (-1)) {
+		stream_ << "\\frac {1} {";
+		/* skip parenthesizing anything because { .. } are effectively parentheses */
+		base->accept (*this);
+		stream_ << "}";
 	} else {
 		parenthesized_visit (node, base);
 		stream_ << "^{";
