@@ -176,18 +176,11 @@ void MultiplicationDivision::decay_assign (Base::Ptr& dest)
 	}
 }
 
-IMPLEMENT_ACCEPTOR (Value);
-IMPLEMENT_ACCEPTOR (Variable);
-IMPLEMENT_ACCEPTOR (Function);
-IMPLEMENT_ACCEPTOR (Power);
-IMPLEMENT_ACCEPTOR (AdditionSubtraction);
-IMPLEMENT_ACCEPTOR (MultiplicationDivision);
-
-IMPLEMENT_GET_TYPE (Value);
-IMPLEMENT_GET_TYPE (Variable);
-IMPLEMENT_GET_TYPE (Function);
-IMPLEMENT_GET_TYPE (Power);
-IMPLEMENT_GET_TYPE (AdditionSubtraction);
-IMPLEMENT_GET_TYPE (MultiplicationDivision);
+IMPLEMENT (Value);
+IMPLEMENT (Variable);
+IMPLEMENT (Function);
+IMPLEMENT (Power);
+IMPLEMENT (AdditionSubtraction);
+IMPLEMENT (MultiplicationDivision);
 
 } // namespace Node

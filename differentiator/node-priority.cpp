@@ -3,12 +3,23 @@
 namespace Node
 {
 
-int AdditionSubtraction::priority() const    { return 0; }
-int MultiplicationDivision::priority() const { return 1; }
-int Power::priority() const                  { return 2; }
-int Variable::priority() const               { return 3; }
-int Function::priority() const               { return 3; }
-int Value::priority() const                  { return 3; }
+enum class Priority
+{
+	AddSub,
+	MulDiv,
+	Power,
+	Value,
+	Variable = Value,
+	Function = Value
+};
+
+Priority AdditionSubtraction::priority_static()    { return Priority::AddSub; }
+Priority MultiplicationDivision::priority_static() { return Priority::MulDiv; }
+Priority Power::priority_static()                  { return Priority::Power; }
+Priority Variable::priority_static()               { return Priority::Variable; }
+Priority Function::priority_static()               { return Priority::Function; }
+Priority Value::priority_static()                  { return Priority::Value; }
+
 
 bool Base::numeric_output() const            { return false; }
 bool Value::numeric_output() const           { return true; }

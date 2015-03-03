@@ -16,8 +16,17 @@ class Base;
 
 #define IMPLEMENT_GET_TYPE(type) TypeOrdered type::get_type() const { return TypeOrdered::type; }
 
+#define IMPLEMENT_PRIORITY(type) Priority type::priority() const { return priority_static(); }
+
+#define IMPLEMENT(type) \
+	IMPLEMENT_ACCEPTOR(type) \
+	IMPLEMENT_GET_TYPE(type) \
+	IMPLEMENT_PRIORITY(type) \
+
 namespace Node
 {
+
+enum class Priority;
 
 enum class TypeOrdered
 {
@@ -37,7 +46,7 @@ public:
 	Base() = default;
 	virtual ~Base();
 
-	virtual int priority() const = 0;
+	virtual Priority priority() const = 0;
 	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const = 0;
 
@@ -156,7 +165,8 @@ public:
 	rational_t value() const { return value_; }
 	void set_value (rational_t value) { value_ = value; }
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const;
 
@@ -188,7 +198,8 @@ public:
 	bool is_target_variable (const std::string& desired) const { return !is_error_ && (name_ == desired); }
 	bool can_be_substituted() const { return !variable_.do_not_substitute; }
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual void Dump (std::ostream& str) const;
 
 	DECLARE_ACCEPTOR;
@@ -215,7 +226,8 @@ public:
 
 	const std::string& name() const { return name_; }
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual void Dump (std::ostream& str) const;
 
 	void add_child (Node::Base::Ptr&& node) { TaggedChildList::add_child (std::move (node)); }
@@ -238,7 +250,8 @@ class Power : public Base
 public:
 	typedef std::unique_ptr<Power> Ptr;
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const;
 
@@ -283,7 +296,8 @@ class AdditionSubtraction : public TaggedChildSet<AdditionSubtractionTag>
 public:
 	typedef std::unique_ptr<AdditionSubtraction> Ptr;
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual void Dump (std::ostream& str) const;
 
 	void add_child (Node::Base::Ptr&& node, bool negate) { TaggedChildSet::add_child ( TaggedChild<AdditionSubtractionTag> (std::move (node), negate)); }
@@ -319,7 +333,8 @@ class MultiplicationDivision : public TaggedChildSet<MultiplicationDivisionTag>
 public:
 	typedef std::unique_ptr<MultiplicationDivision> Ptr;
 
-	virtual int priority() const;
+	static Priority priority_static();
+	virtual Priority priority() const;
 	virtual void Dump (std::ostream& str) const;
 
 	void add_child (Node::Base::Ptr&& node, bool reciprocate) { TaggedChildSet::add_child ( TaggedChild<MultiplicationDivisionTag> (std::move (node), reciprocate)); }
