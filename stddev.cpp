@@ -24,7 +24,7 @@ const option option_array[] = {
 };
 
 void usage (const char* name) {
-	std::cerr << "Usage: " << name << "[-m|--machine] [-q|--terse]" << std::endl
+	std::cerr << "Usage: " << name << " [-m|--machine] [-q|--terse]" << std::endl
 	          << "       [-n|--name NAME] [--name-machine NAME]" << std::endl
 	          << "       [-e|--input-errors] [-E|--error SYSTEMATIC-ERROR]" << std::endl;
 	exit (EXIT_FAILURE);
@@ -106,28 +106,32 @@ int main (int argc, char** argv)
 	}
 
 	/*
-	 * Init remaining parameters and configure default values.
+	 * Read the input data.
+	 */
+
+	configure_exceptions (std::cin);
+
+	std::string dataset_name = "F";
+	std::vector<data_t> data;
+	data_t systematic_error = 0;
+
+	if (parameters.input.has_errors) {
+		std::tie (dataset_name, data, systematic_error) = read_into_vector_errors (std::cin);
+	} else {
+		data = read_into_vector (std::cin);
+	}
+
+	/*
+	 * Configure the output name (it may have been inferred from the dataset)
 	 */
 
 	if (parameters.output.common.name.empty()) {
-		parameters.output.common.name = "F";
+		parameters.output.common.name = dataset_name;
 	}
 
 	if (parameters.output.machine.name.empty()) {
 		parameters.output.machine.name = parameters.output.common.name;
 	}
-
-	configure_exceptions (std::cin);
-
-	std::vector<data_t> data;
-	data_t systematic_error = 0;
-
-	if (parameters.input.has_errors) {
-		std::tie (data, systematic_error) = read_into_vector_errors (std::cin);
-	} else {
-		data = read_into_vector (std::cin);
-	}
-
 
 	if (!fp_cmp (parameters.input.additional_error, 0)) {
 		if (fp_cmp (systematic_error, 0)) {

@@ -111,20 +111,29 @@ inline std::vector<T> read_into_vector (std::istream& in)
 }
 
 template <typename T = data_t>
-inline std::pair<std::vector<T>, T> read_into_vector_errors (std::istream& in)
+inline std::tuple<std::string, std::vector<T>, T> read_into_vector_errors (std::istream& in)
 {
 	std::vector<T> ret;
 	T ret_error = 0;
+	std::string variable_name;
 
 	while (!in.eof()) {
+		std::string line_name;
 		T value, error;
-		std::cin >> value >> error >> std::ws;
+		std::cin >> line_name >> value >> error >> std::ws;
+
+		if (variable_name.empty()) {
+			variable_name = std::move (line_name);
+		} else {
+			VERIFY (variable_name == line_name, std::runtime_error,
+			        "Error while reading dataset from file: variable name mismatch: was '" << variable_name << "', becomes '" << line_name << "'" );
+		}
 
 		ret_error = std::max (ret_error, error);
 		ret.push_back (std::move (value));
 	}
 
-	return std::pair<std::vector<T>, T> (std::move (ret), std::move (ret_error));
+	return std::tuple<std::string, std::vector<T>, T> (std::move (variable_name), std::move (ret), std::move (ret_error));
 }
 
 /*
