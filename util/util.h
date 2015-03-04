@@ -33,12 +33,14 @@
 
 #define BUILD_STRING(stream) static_cast<std::ostringstream&&> (std::ostringstream() << stream).str()
 
-#define ERROR(kind, text) throw kind (BUILD_STRING (text));
+#define ERROR(kind, text) throw kind (BUILD_STRING (text))
 
 #define VERIFY(cond, kind, text) do { if (!(cond)) ERROR (kind, text); } while (0)
 
+#define HANDLE_DEFAULT_CASE default: ERROR (std::logic_error, "Switch error in " << __func__ << ", in " __FILE__ ":" << __LINE__); break;
+
 #ifndef NDEBUG
-# define ASSERT(cond, text) ERROR (std::logic_error, cond, "Assertion failed: " #cond << " == 0 in " << __func__ << ", in " __FILE__ ":" #__LINE__ << ": " << text)
+# define ASSERT(cond, text) VERIFY (cond, std::logic_error, "Assertion failed: " #cond << " == 0 in " << __func__ << ", in " __FILE__ ":"  << __LINE__ << ": " << text)
 #else // NDEBUG
 # define ASSERT(...) do { } while (0)
 #endif // NDEBUG
