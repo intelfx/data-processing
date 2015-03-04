@@ -133,6 +133,9 @@ void LexerIterator::next()
 		const character* current_char = &*current_;
 		character* end_char;
 		cache_.numeric = std::strtol (current_char, &end_char, 0);
+
+		VERIFY (end_char > current_char, std::logic_error, "Lexer error: could not parse a number at '" << *current_char << "' (classification error)");
+
 		current_end_ += (end_char - current_char);
 		cache_.is_valid = true;
 		break;
