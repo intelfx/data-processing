@@ -49,17 +49,17 @@ int main (int argc, char** argv)
 
 	auto f = [a, b] (double x) { return a * x + b; };
 
-	for (double x = min_x, y = f (x); x <= max_x && y <= max_y; x += step_x, y = f (x)) {
-		if (y < min_y) {
+	for (double x = min_x, y = f (x); x <= max_x; x += step_x, y = f (x)) {
+		if (y < min_y || y > max_y) {
 			continue;
 		}
 
 		double charted_x = x - min_x,
 		       charted_y = y - min_y;
 
-		int steps_y_floor = floor (charted_y / step_y),
-		    steps_y_ceil = ceil (charted_y / step_y),
-		    steps_x = round (x / step_x);
+		int steps_y_floor = std::floor (charted_y / step_y),
+		    steps_y_ceil = std::ceil (charted_y / step_y),
+		    steps_x = std::lround (charted_x / step_x);
 
 		double rounded_y_floored = step_y * steps_y_floor,
 		       rounded_y_ceiled = step_y * steps_y_ceil,
@@ -84,8 +84,8 @@ int main (int argc, char** argv)
 	}
 
 	for (const auto& res: results) {
-		std::cout << "x = " << res.second.x << " y = " << res.second.y
-		          << " (rounded: x = " << res.second.rounded_x << " y = " << res.second.rounded_y << ")"
-		          << " (steps: x = " << res.second.steps_x << " y = " << res.second.steps_y << ")" << std::endl;
+		std::cout << "point: plot at x = " << res.second.steps_x << " y = " << res.second.steps_y << std::endl
+		          << "       (x = " << res.second.rounded_x << " actual " << res.second.x << " error " << std::fabs (res.second.x - res.second.rounded_x) << ")" << std::endl
+		          << "       (y = " << res.second.rounded_y << " actual " << res.second.y << " error " << std::fabs (res.second.y - res.second.rounded_y) << ")" << std::endl;
 	}
 }
