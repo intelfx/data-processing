@@ -230,45 +230,69 @@ boost::any LaTeX::visit (const Node::MultiplicationDivision& node)
 
 	for (auto& child: node.children()) {
 		if (child.tag.reciprocated) {
-			stream_ << "\\frac {";
 			++div_count;
 		} else {
 			++mul_count;
 		}
 	}
 
-	bool first = true;
+	if (div_count) {
+		stream_ << "\\frac {";
+	}
+
+	enum class State {
+		First,
+		Multipliers,
+		Divisors
+	};
+	State state = State::First;
 
 	for (auto& child: node.children()) {
-		if (first) {
+		switch (state) {
+		case State::First:
 			if (child.tag.reciprocated) {
 				stream_ << "1} {";
+				state = State::Divisors;
+			} else {
+				state = State::Multipliers;
 			}
-		} else {
+			break;
+
+		case State::Multipliers:
 			if (child.tag.reciprocated) {
 				stream_ << "} {";
+				state = State::Divisors;
 			} else {
 				maybe_print_multiplication (child.node);
+				/* remain in State::Multipliers */
 			}
+			break;
+
+		case State::Divisors:
+			ASSERT (child.tag.reciprocated, "Internal tree node sorting error: multiplier encountered after a divisor in a MultiplicationDivision node");
+
+			maybe_print_multiplication (child.node);
+			/* remain in State::Divisors */
+
+			break;
+
+		HANDLE_DEFAULT_CASE
 		}
 
 		if (dynamic_cast<Node::MultiplicationDivision*> (child.node.get()) ||
-		    child.tag.reciprocated ||
-		    (mul_count == 1)) {
+		    (child.tag.reciprocated ? (div_count == 1) : (mul_count == 1))) {
 			/* skip parenthesizing if either:
 			 * - the child is mul-div node (\\frac is a parenthesizing construction by itself)
-			 * - the child is reciprocated (it is enclosed in { .. })
-			 * - we are the single multiplier (same) */
+			 * - the child is the only divisor
+			 * - the child is the only multiplier */
 			child.node->accept (*this);
 		} else {
 			parenthesized_visit (node, child.node);
 		}
+	}
 
-		if (child.tag.reciprocated) {
-			stream_ << "}";
-		}
-
-		first = false;
+	if (div_count) {
+		stream_ << "}";
 	}
 
 	return boost::any();
