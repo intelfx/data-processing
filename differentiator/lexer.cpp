@@ -49,7 +49,7 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 		return Classification::Alphabetical;
 	}
 
-	if (isdigit (*it) || *it == '.') {
+	if (isdigit (*it)) {
 		return Classification::Numeric;
 	}
 
