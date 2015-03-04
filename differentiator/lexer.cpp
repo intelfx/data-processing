@@ -45,7 +45,7 @@ LexerIterator::Classification LexerIterator::classify (string::const_iterator it
 		return Classification::Whitespace;
 	}
 
-	if (isalpha (*it) || *it == '_') {
+	if (isalpha (*it) || *it == '_' || *it == '\\') {
 		return Classification::Alphabetical;
 	}
 
@@ -116,14 +116,25 @@ void LexerIterator::next()
 		current_end_ += 2;
 		break;
 
-	case Classification::Alphabetical:
+	case Classification::Alphabetical: {
+		int depth = 0;
+
 		// first character is already classified
 		do {
 			++current_end_;
-		} while (isalpha (*current_end_) ||
-		         isdigit (*current_end_) ||
-		         (*current_end_ == '_'));
+			switch (*current_end_) {
+			case '{': ++depth; break;
+			case '}': --depth; break;
+			}
+		} while ((depth > 0) ||
+		         (depth == 0 && (isalpha (*current_end_) ||
+		                         isdigit (*current_end_) ||
+		                         (*current_end_ == '_') ||
+		                         (*current_end_ == '\\') ||
+		                         (*current_end_ == '{') ||
+		                         (*current_end_ == '}'))));
 		break;
+	}
 
 	case Classification::Numeric: {
 		/*
