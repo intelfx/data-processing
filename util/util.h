@@ -112,30 +112,40 @@ inline std::vector<T> read_into_vector (std::istream& in)
 	return std::move (ret);
 }
 
-template <typename T = data_t>
-inline std::tuple<std::string, std::vector<T>, T> read_into_vector_errors (std::istream& in)
+template <typename T>
+struct Dataset;
+
+template <typename T>
+struct Dataset
 {
-	std::vector<T> ret;
-	T ret_error = 0;
-	std::string variable_name;
+	std::vector<T> data;
+	T error;
+
+	Dataset()
+	: data()
+	, error (0)
+	{
+	}
+
+	typedef std::unordered_map<std::string, Dataset<T>> Map;
+};
+
+template <typename T = data_t>
+inline typename Dataset<T>::Map read_into_vector_errors (std::istream& in)
+{
+	typename Dataset<T>::Map datasets_in_file;
 
 	while (!in.eof()) {
 		std::string line_name;
 		T value, error;
 		std::cin >> line_name >> value >> error >> std::ws;
 
-		if (variable_name.empty()) {
-			variable_name = std::move (line_name);
-		} else {
-			VERIFY (variable_name == line_name, std::runtime_error,
-			        "Error while reading dataset from file: variable name mismatch: was '" << variable_name << "', becomes '" << line_name << "'" );
-		}
-
-		ret_error = std::max (ret_error, error);
-		ret.push_back (std::move (value));
+		Dataset<T>& dataset = datasets_in_file[line_name];
+		dataset.error = std::max (dataset.error, error);
+		dataset.data.push_back (value);
 	}
 
-	return std::tuple<std::string, std::vector<T>, T> (std::move (variable_name), std::move (ret), std::move (ret_error));
+	return datasets_in_file;
 }
 
 /*

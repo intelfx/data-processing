@@ -34,6 +34,8 @@ const size_t MAX_SIGMA = 2;
 
 } // anonymous namespace
 
+void process_dataset (const std::string& name, const std::string& name_machine, const std::vector<data_t>& data, data_t systematic_error,
+                      bool output_machine, bool output_terse);
 
 int main (int argc, char** argv)
 {
@@ -54,7 +56,6 @@ int main (int argc, char** argv)
 			bool has_errors;
 			data_t additional_error;
 		} input;
-		std::string expression;
 	} parameters = { };
 
 	/*
@@ -111,36 +112,50 @@ int main (int argc, char** argv)
 
 	configure_exceptions (std::cin);
 
-	std::string dataset_name = "F";
-	std::vector<data_t> data;
-	data_t systematic_error = 0;
-
 	if (parameters.input.has_errors) {
-		std::tie (dataset_name, data, systematic_error) = read_into_vector_errors (std::cin);
-	} else {
-		data = read_into_vector (std::cin);
-	}
-
-	/*
-	 * Configure the output name (it may have been inferred from the dataset)
-	 */
-
-	if (parameters.output.common.name.empty()) {
-		parameters.output.common.name = dataset_name;
-	}
-
-	if (parameters.output.machine.name.empty()) {
-		parameters.output.machine.name = parameters.output.common.name;
-	}
-
-	if (!fp_cmp (parameters.input.additional_error, 0)) {
-		if (fp_cmp (systematic_error, 0)) {
-			systematic_error = parameters.input.additional_error;
-		} else {
-			systematic_error = sqrt (sq (systematic_error) + sq (parameters.input.additional_error));
+		if (!parameters.output.common.name.empty()) {
+			std::cerr << "Warning: configured dataset name '" << parameters.output.common.name << "' will be ignored." << std::endl
+			          << std::endl;
 		}
-	}
 
+		if (!parameters.output.machine.name.empty()) {
+			std::cerr << "Warning: configured machine output name '" << parameters.output.machine.name << "' will be ignored." << std::endl
+			          << std::endl;
+		}
+
+		if (!fp_cmp (parameters.input.additional_error, 0)) {
+			std::cerr << "Warning: configured dataset systematic error == " << parameters.input.additional_error << " will be ignored." << std::endl
+			          << std::endl;
+		}
+
+		Dataset<data_t>::Map datasets = read_into_vector_errors (std::cin);
+		for (Dataset<data_t>::Map::iterator it = datasets.begin(); it != datasets.end(); ++it) {
+			process_dataset (it->first, it->first, it->second.data, it->second.error,
+			                 parameters.output.machine.enabled, parameters.output.common.terse);
+		}
+	} else {
+		/*
+		 * Configure the output name.
+		 */
+
+		if (parameters.output.common.name.empty()) {
+			parameters.output.common.name = "F";
+		}
+
+		if (parameters.output.machine.name.empty()) {
+			parameters.output.machine.name = parameters.output.common.name;
+		}
+
+		std::vector<data_t> data = read_into_vector (std::cin);
+		process_dataset (parameters.output.common.name, parameters.output.machine.name, data, parameters.input.additional_error,
+		                 parameters.output.machine.enabled, parameters.output.common.terse);
+	}
+}
+
+
+void process_dataset (const std::string& name, const std::string& name_machine, const std::vector<data_t>& data, data_t systematic_error,
+                      bool output_machine, bool output_terse)
+{
 	data_t average = avg (data);
 	data_t squared_difference_sum = std::accumulate (data.begin(), data.end(), (double) 0,
 	                                                 [average] (double acc, double value) { return acc + (value - average) * (value - average); });
@@ -155,9 +170,9 @@ int main (int argc, char** argv)
 		total_error = sqrt (sq (stderror) + sq (systematic_error));
 	}
 
-	if (!parameters.output.common.terse) {
+	if (!output_terse) {
 		std::cerr << "Dataset averaging:" << std::endl
-		          << parameters.output.common.name << " < N=" << data.size() << " entries > = " << average << std::endl
+		          << name << " < N=" << data.size() << " entries > = " << average << std::endl
 		          << std::endl
 		          << "Standard deviation (of the sample) = " << stddev << std::endl
 		          << "Standard error (of the average) = " << stderror << std::endl
@@ -184,7 +199,7 @@ int main (int argc, char** argv)
 
 		std::cerr << std::endl;
 	} else {
-		std::cerr << parameters.output.common.name << " <N=" << data.size() << "> = " << average << " ± " << total_error;
+		std::cerr << name << " <N=" << data.size() << "> = " << average << " ± " << total_error;
 
 		if (!fp_cmp (systematic_error, 0)) {
 			std::cerr << " (std. = " << stderror << "; syst. = " << systematic_error << ")";
@@ -193,7 +208,7 @@ int main (int argc, char** argv)
 		std::cerr << std::endl;
 	}
 
-	if (parameters.output.machine.enabled) {
-		std::cout << parameters.output.machine.name << " " << average << " " << total_error << std::endl;
+	if (output_machine) {
+		std::cout << name_machine << " " << average << " " << total_error << std::endl;
 	}
 }
