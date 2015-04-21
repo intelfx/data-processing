@@ -40,7 +40,7 @@ boost::any Differentiate::visit (const Node::Function& node)
 
 	auto it = differentiators.find (node.name());
 	if (it != differentiators.end()) {
-			return it->second (*this, node.children());
+		return it->second (*this, node.children());
 	} else {
 		ERROR (std::runtime_error, "Differentiate error: unknown function: '" << node.name() << "'");
 	}

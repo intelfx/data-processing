@@ -133,7 +133,7 @@ public:
 	void add_children_from (const TaggedChildSet<Tag>& rhs);
 
 protected:
-    void add_child (TaggedChild<Tag>&& child);
+	void add_child (TaggedChild<Tag>&& child);
 
 	std::multiset<TaggedChild<Tag>> children_;
 };
@@ -145,11 +145,11 @@ public:
 	std::list<TaggedChild<Tag>>& children() { return children_; }
 	const std::list<TaggedChild<Tag>>& children() const { return children_; }
 
-    void add_children_from (const TaggedChildList<Tag>& rhs);
+	void add_children_from (const TaggedChildList<Tag>& rhs);
 
 protected:
-    void add_child (TaggedChild<Tag>&& child);
-    void add_child_front (TaggedChild<Tag>&& child);
+	void add_child (TaggedChild<Tag>&& child);
+	void add_child_front (TaggedChild<Tag>&& child);
 
 	std::list<TaggedChild<Tag>> children_;
 };
@@ -172,11 +172,11 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 
 private:
@@ -188,7 +188,7 @@ class Variable : public Base
 public:
 	typedef std::unique_ptr<Variable> Ptr;
 
-    Variable (const std::string& name, const ::Variable& variable, bool is_error);
+	Variable (const std::string& name, const ::Variable& variable, bool is_error);
 
 	const std::string& name() const { return name_; }
 	std::string pretty_name() const { return is_error_ ? "Δ" + name_ : name_;  }
@@ -204,11 +204,11 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 
 private:
@@ -234,11 +234,11 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 
 private:
@@ -255,13 +255,13 @@ public:
 	virtual bool numeric_output() const;
 	virtual void Dump (std::ostream& str) const;
 
-    void set_base (Node::Base::Ptr&& node) { base_ = std::move (node); }
-    Node::Base::Ptr& get_base() { return base_; }
-    const Node::Base::Ptr& get_base() const { return base_; }
+	void set_base (Node::Base::Ptr&& node) { base_ = std::move (node); }
+	Node::Base::Ptr& get_base() { return base_; }
+	const Node::Base::Ptr& get_base() const { return base_; }
 
-    void set_exponent (Node::Base::Ptr&& node) { exponent_ = std::move (node); }
-    Node::Base::Ptr& get_exponent() { return exponent_; }
-    const Node::Base::Ptr& get_exponent() const { return exponent_; }
+	void set_exponent (Node::Base::Ptr&& node) { exponent_ = std::move (node); }
+	Node::Base::Ptr& get_exponent() { return exponent_; }
+	const Node::Base::Ptr& get_exponent() const { return exponent_; }
 
 	rational_t get_exponent_constant (bool release);
 	void insert_exponent_constant (rational_t value);
@@ -271,14 +271,14 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 
-    Node::Base::Ptr base_, exponent_;
+	Base::Ptr base_, exponent_;
 };
 
 struct AdditionSubtractionTag
@@ -307,11 +307,11 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 
 private:
@@ -347,11 +347,11 @@ public:
 
 	DECLARE_ACCEPTOR;
 
-    virtual Base::Ptr clone() const;
+	virtual Base::Ptr clone() const;
 
 protected:
-    virtual bool compare_same_type (const Base::Ptr& rhs) const;
- 	virtual bool less_same_type (const Base::Ptr& rhs) const;
+	virtual bool compare_same_type (const Base::Ptr& rhs) const;
+	virtual bool less_same_type (const Base::Ptr& rhs) const;
 	virtual TypeOrdered get_type() const;
 };
 
@@ -372,21 +372,21 @@ void TaggedChildSet<Tag>::add_children_from (const TaggedChildSet<Tag>& rhs)
 template <typename Tag>
 void TaggedChildList<Tag>::add_child (TaggedChild<Tag>&& child)
 {
-    children_.push_back (std::move (child));
+	children_.push_back (std::move (child));
 }
 
 template <typename Tag>
 void TaggedChildList<Tag>::add_child_front (TaggedChild<Tag>&& child)
 {
-    children_.push_front (std::move (child));
+	children_.push_front (std::move (child));
 }
 
 template <typename Tag>
 void TaggedChildList<Tag>::add_children_from (const TaggedChildList<Tag>& rhs)
 {
-    for (const TaggedChild<Tag>& child: rhs.children_) {
-        children_.push_back (child.clone());
-    }
+	for (const TaggedChild<Tag>& child: rhs.children_) {
+		children_.push_back (child.clone());
+	}
 }
 
 } // namespace Node
