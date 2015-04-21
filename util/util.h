@@ -20,10 +20,8 @@
 #include <cstdlib>
 #include <cassert>
 
-#ifndef IN_KDEVELOP_PARSER
 #include <boost/rational.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#endif // IN_KDEVELOP_PARSER
 
 #include <boost/any.hpp>
 
